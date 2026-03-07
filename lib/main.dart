@@ -1,122 +1,819 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const PithApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class PithApp extends StatelessWidget {
+  const PithApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    const background = Color(0xFF09111F);
+    const surface = Color(0xFF121C2C);
+    const cardSurface = Color(0xFF182435);
+    const gold = Color(0xFFF4C025);
+    const cream = Color(0xFFF4EBD0);
+    const muted = Color(0xFF90A0BA);
+
+    const scheme = ColorScheme.dark(
+      primary: gold,
+      secondary: cream,
+      surface: surface,
+      onPrimary: Color(0xFF111111),
+      onSecondary: background,
+      onSurface: cream,
+      error: Color(0xFFF06A6A),
+      onError: Colors.white,
+    );
+
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Pith',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        colorScheme: scheme,
+        scaffoldBackgroundColor: background,
+        textTheme: Typography.whiteMountainView.apply(
+          bodyColor: cream,
+          displayColor: cream,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: cardSurface.withValues(alpha: 0.8),
+          hintStyle: const TextStyle(color: muted),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const PithShell(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class PithShell extends StatefulWidget {
+  const PithShell({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<PithShell> createState() => _PithShellState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _PithShellState extends State<PithShell> {
+  int _currentIndex = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  final List<_ShellTab> _tabs = const [
+    _ShellTab(label: 'Home', icon: Icons.home_rounded),
+    _ShellTab(label: 'Stacks', icon: Icons.layers_rounded),
+    _ShellTab(label: 'Calendar', icon: Icons.calendar_today_rounded),
+    _ShellTab(label: 'Profile', icon: Icons.person_rounded),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    final screens = [
+      const _HomeDashboard(),
+      const _PreviewScreen(
+        title: 'Expanded Birthday Stack',
+        eyebrow: 'Siguiente paso natural',
+        description:
+            'La prioridad despues del dashboard es desplegar la tarjeta maestra de cumpleanos en una vista priorizada por circulos.',
+        bulletPoints: [
+          'Grid tipo masonry para VIP, familia y inner circle.',
+          'Cambio de contexto desde la tarjeta de 60 cumpleanos.',
+          'Acciones rapidas para nota, regalo o recordatorio.',
+        ],
+        icon: Icons.stars_rounded,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      const _PreviewScreen(
+        title: 'Relationship Calendar',
+        eyebrow: 'Base para radar y agenda',
+        description:
+            'Aqui conviene unir cumpleanos, recordatorios y densidad de interaccion para preparar el Relationship Radar.',
+        bulletPoints: [
+          'Eventos por contacto y por circulo.',
+          'Agrupacion por dia para cargas de 60+ cumpleanos.',
+          'Puente directo hacia Supabase cuando entremos a datos.',
+        ],
+        icon: Icons.radar_rounded,
+      ),
+      const _PreviewScreen(
+        title: 'Profile Canvas',
+        eyebrow: 'Quick Sparks y detalle relacional',
+        description:
+            'El perfil sera la pantalla mas rica en contexto: intereses, timeline de sparks y acciones rapidas por contacto.',
+        bulletPoints: [
+          'Timeline vertical con sparks fechados.',
+          'Intereses con iconografia ligera.',
+          'Entrada tipo comando para capturar notas en segundos.',
+        ],
+        icon: Icons.auto_awesome_rounded,
+      ),
+    ];
+
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0A1426),
+              Color(0xFF09111F),
+              Color(0xFF060B14),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: KeyedSubtree(
+              key: ValueKey(_currentIndex),
+              child: screens[_currentIndex],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF121C2C).withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              ),
+              child: Row(
+                children: [
+                  for (var index = 0; index < _tabs.length; index++)
+                    Expanded(
+                      child: _NavItem(
+                        tab: _tabs[index],
+                        selected: _currentIndex == index,
+                        onTap: () => setState(() => _currentIndex = index),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeDashboard extends StatelessWidget {
+  const _HomeDashboard();
+
+  static const _deck = _DeckSummary(
+    totalBirthdays: 60,
+    title: '60 Birthdays\ntoday',
+    subtitle: 'A significant moment in your network. Send a note.',
+    avatars: ['S', 'M', 'E', '+57'],
+  );
+
+  static const _pulses = [
+    _PulseItem(
+      name: 'Sarah Jenkins',
+      meta: 'Last spoke 3 days ago',
+      detail: 'Designer',
+      initials: 'SJ',
+      tint: Color(0xFF5F89C9),
+    ),
+    _PulseItem(
+      name: 'Marcus Aurelius',
+      meta: 'Met at Coffee House',
+      detail: 'Philosophy',
+      initials: 'MA',
+      tint: Color(0xFF7F6FCE),
+    ),
+    _PulseItem(
+      name: 'Elena Rodriguez',
+      meta: 'Follow up on partnership',
+      detail: 'Tomorrow',
+      initials: 'ER',
+      tint: Color(0xFFCA7B66),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate(
+              [
+                const _HeaderBar(),
+                const SizedBox(height: 24),
+                _DeckCard(deck: _deck),
+                const SizedBox(height: 34),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'RECENT PULSE',
+                      style: textTheme.labelLarge?.copyWith(
+                        color: const Color(0xFF8392AD),
+                        letterSpacing: 3.2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'View all',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFFF4C025),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                for (final pulse in _pulses) ...[
+                  _PulseCard(item: pulse),
+                  const SizedBox(height: 16),
+                ],
+                const SizedBox(height: 4),
+                const _QuickSparkInput(),
+                const SizedBox(height: 12),
+                const _ShortcutRow(),
+                const SizedBox(height: 120),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderBar extends StatelessWidget {
+  const _HeaderBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const _PithLogo(),
+        const SizedBox(width: 12),
+        Text(
+          'Pith',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.6,
+          ),
+        ),
+        const Spacer(),
+        const _IconButtonBubble(icon: Icons.search_rounded),
+        const SizedBox(width: 10),
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.35)),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF7D89A), Color(0xFFD7A46D)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.person, color: Color(0xFF3B2A16), size: 20),
+        ),
+      ],
+    );
+  }
+}
+
+class _PithLogo extends StatelessWidget {
+  const _PithLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: List.generate(
+          7,
+          (index) => Container(
+            width: index == 3 ? 8 : 6,
+            height: index == 3 ? 8 : 6,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF4C025),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckCard extends StatelessWidget {
+  const _DeckCard({required this.deck});
+
+  final _DeckSummary deck;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: -12,
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5EAC5).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(34),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 5,
+          right: 5,
+          bottom: -24,
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5EAC5).withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(34),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4C025),
+            borderRadius: BorderRadius.circular(36),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33F4C025),
+                blurRadius: 28,
+                offset: Offset(0, 18),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'STACKED DECK',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: const Color(0xFF3F3522),
+                            letterSpacing: 4,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          deck.title,
+                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                            color: const Color(0xFF101010),
+                            fontWeight: FontWeight.w800,
+                            height: 1.04,
+                            letterSpacing: -1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 240),
+                          child: Text(
+                            deck.subtitle,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: const Color(0xFF2E2A1F),
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.cake_rounded,
+                    color: Color(0x88704E00),
+                    size: 62,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                height: 42,
+                child: Stack(
+                  children: [
+                    for (var index = 0; index < deck.avatars.length; index++)
+                      Positioned(
+                        left: index * 26,
+                        child: _DeckAvatar(label: deck.avatars[index]),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DeckAvatar extends StatelessWidget {
+  const _DeckAvatar({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAggregate = label.startsWith('+');
+
+    return Container(
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isAggregate ? const Color(0xFFECECEC) : const Color(0xFF1A2332),
+        border: Border.all(color: const Color(0xFFF4C025), width: 2),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isAggregate ? const Color(0xFF111111) : const Color(0xFFF4EBD0),
+          fontWeight: FontWeight.w800,
+          fontSize: isAggregate ? 13 : 15,
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseCard extends StatelessWidget {
+  const _PulseCard({required this.item});
+
+  final _PulseItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131D2B).withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [item.tint.withValues(alpha: 0.9), item.tint.withValues(alpha: 0.45)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              item.initials,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${item.meta} • ${item.detail}',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: const Color(0xFF91A0BA),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Icon(Icons.more_horiz_rounded, color: Color(0xFF91A0BA)),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickSparkInput extends StatelessWidget {
+  const _QuickSparkInput();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF121C2C).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+      child: const TextField(
+        style: TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          prefixIcon: Icon(Icons.terminal_rounded, color: Color(0xFFF4C025)),
+          hintText: '@Juan: likes vinyl records',
+          suffixIcon: Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                'ENTER',
+                style: TextStyle(
+                  color: Color(0xFF8392AD),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.3,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShortcutRow extends StatelessWidget {
+  const _ShortcutRow();
+
+  @override
+  Widget build(BuildContext context) {
+    const shortcuts = ['LOG MEETING', 'SET REMINDER', 'SHARE PROFILE'];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        for (final item in shortcuts)
+          Text(
+            item,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF6E7D97),
+              letterSpacing: 2.6,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PreviewScreen extends StatelessWidget {
+  const _PreviewScreen({
+    required this.title,
+    required this.eyebrow,
+    required this.description,
+    required this.bulletPoints,
+    required this.icon,
+  });
+
+  final String title;
+  final String eyebrow;
+  final String description;
+  final List<String> bulletPoints;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _HeaderBar(),
+          const SizedBox(height: 40),
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF121C2C).withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(36),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4C025).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: const Color(0xFFF4C025), size: 30),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  eyebrow.toUpperCase(),
+                  style: textTheme.labelLarge?.copyWith(
+                    color: const Color(0xFFF4C025),
+                    letterSpacing: 3,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.04,
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  description,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFFBAC6DA),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                for (final point in bulletPoints) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF4C025),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          point,
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFFE9E0C6),
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconButtonBubble extends StatelessWidget {
+  const _IconButtonBubble({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.04),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Icon(icon, color: const Color(0xFFF4EBD0), size: 22),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.tab,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _ShellTab tab;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? const Color(0xFFF4C025) : const Color(0xFF9AA8C0);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('You have pushed the button this many times:'),
+            Icon(tab.icon, color: color, size: 24),
+            const SizedBox(height: 6),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              tab.label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
     );
   }
+}
+
+class _ShellTab {
+  const _ShellTab({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+}
+
+class _DeckSummary {
+  const _DeckSummary({
+    required this.totalBirthdays,
+    required this.title,
+    required this.subtitle,
+    required this.avatars,
+  });
+
+  final int totalBirthdays;
+  final String title;
+  final String subtitle;
+  final List<String> avatars;
+}
+
+class _PulseItem {
+  const _PulseItem({
+    required this.name,
+    required this.meta,
+    required this.detail,
+    required this.initials,
+    required this.tint,
+  });
+
+  final String name;
+  final String meta;
+  final String detail;
+  final String initials;
+  final Color tint;
 }
