@@ -71,8 +71,11 @@ class PithShell extends StatefulWidget {
   State<PithShell> createState() => _PithShellState();
 }
 
-class _PithShellState extends State<PithShell> {
+class _PithShellState extends State<PithShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  late final AnimationController _fanOutController;
+  bool _isFanOutVisible = false;
 
   static const _birthdayContacts = [
     _BirthdayContact(
@@ -147,9 +150,44 @@ class _PithShellState extends State<PithShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _fanOutController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 820),
+    );
+  }
+
+  @override
+  void dispose() {
+    _fanOutController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openBirthdayStack() async {
+    if (_isFanOutVisible || _currentIndex != 0) {
+      return;
+    }
+
+    setState(() => _isFanOutVisible = true);
+    await _fanOutController.forward();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentIndex = 1;
+      _isFanOutVisible = false;
+    });
+
+    _fanOutController.reset();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screens = [
-      _HomeDashboard(onOpenBirthdays: () => setState(() => _currentIndex = 1)),
+      _HomeDashboard(onOpenBirthdays: _openBirthdayStack),
       _BirthdayStackScreen(
         contacts: _birthdayContacts,
         onBack: () => setState(() => _currentIndex = 0),
@@ -181,29 +219,42 @@ class _PithShellState extends State<PithShell> {
     ];
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0A1426),
-              Color(0xFF09111F),
-              Color(0xFF060B14),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 280),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            child: KeyedSubtree(
-              key: ValueKey(_currentIndex),
-              child: screens[_currentIndex],
+      body: Stack(
+        children: [
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF0A1426),
+                  Color(0xFF09111F),
+                  Color(0xFF060B14),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: KeyedSubtree(
+                  key: ValueKey(_currentIndex),
+                  child: screens[_currentIndex],
+                ),
+              ),
             ),
           ),
-        ),
+          if (_isFanOutVisible)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: _BirthdayFanOutOverlay(
+                  controller: _fanOutController,
+                  contacts: _birthdayContacts.take(5).toList(),
+                ),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -214,7 +265,9 @@ class _PithShellState extends State<PithShell> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF121C2C).withValues(alpha: 0.88),
+                color: const Color(0xFF121C2C).withValues(
+                  alpha: _isFanOutVisible ? 0.34 : 0.88,
+                ),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
               ),
@@ -523,6 +576,260 @@ class _BirthdayStackScreen extends StatefulWidget {
 
   @override
   State<_BirthdayStackScreen> createState() => _BirthdayStackScreenState();
+}
+
+class _BirthdayFanOutOverlay extends StatelessWidget {
+  const _BirthdayFanOutOverlay({
+    required this.controller,
+    required this.contacts,
+  });
+
+  final Animation<double> controller;
+  final List<_BirthdayContact> contacts;
+
+  @override
+  Widget build(BuildContext context) {
+    final cardOffsets = <Offset>[
+      const Offset(-150, -150),
+      const Offset(-74, -92),
+      const Offset(0, -56),
+      const Offset(76, -92),
+      const Offset(152, -148),
+    ];
+    final rotations = [-0.48, -0.22, 0.0, 0.22, 0.48];
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final curve = Curves.easeOutCubic.transform(controller.value);
+        final fadeCurve = Curves.easeInOut.transform(controller.value);
+
+        return Container(
+          color: Color.lerp(
+            Colors.transparent,
+            const Color(0xCC06101D),
+            fadeCurve,
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, -0.1),
+                      radius: 0.9,
+                      colors: [
+                        const Color(0x22F4C025).withValues(alpha: 0.36 * curve),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: const Alignment(0, 0.05),
+                child: SizedBox(
+                  width: 360,
+                  height: 380,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      for (var index = 0; index < contacts.length; index++)
+                        Transform.translate(
+                          offset: cardOffsets[index] * curve,
+                          child: Transform.rotate(
+                            angle: rotations[index] * curve,
+                            child: Transform.scale(
+                              scale: 0.7 + (0.3 * curve),
+                              child: Opacity(
+                                opacity: curve.clamp(0.0, 1.0),
+                                child: _FanOutMiniCard(
+                                  contact: contacts[index],
+                                  highlight: index < 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      Transform.scale(
+                        scale: 1 - (0.08 * curve),
+                        child: Opacity(
+                          opacity: (1.2 - controller.value * 1.35).clamp(0.0, 1.0),
+                          child: const _DeckFanCoreCard(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DeckFanCoreCard extends StatelessWidget {
+  const _DeckFanCoreCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 282,
+      height: 318,
+      padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4C025),
+        borderRadius: BorderRadius.circular(36),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x44F4C025),
+            blurRadius: 36,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'STACKED DECK',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: const Color(0xFF3F3522),
+              letterSpacing: 4,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '60 Birthdays\ntoday',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: const Color(0xFF111111),
+              fontWeight: FontWeight.w800,
+              height: 1.04,
+              letterSpacing: -1.4,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              for (final label in const ['ET', 'JV', 'SJ'])
+                Transform.translate(
+                  offset: Offset(label == 'ET' ? 0 : -8, 0),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF101010).withValues(alpha: 0.92),
+                      border: Border.all(color: const Color(0xFFF4EBD0), width: 1.6),
+                    ),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: Color(0xFFF4EBD0),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FanOutMiniCard extends StatelessWidget {
+  const _FanOutMiniCard({required this.contact, required this.highlight});
+
+  final _BirthdayContact contact;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 116,
+      height: 154,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: highlight
+              ? const Color(0x88F4C025)
+              : Colors.white.withValues(alpha: 0.06),
+          width: highlight ? 1.6 : 1,
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            contact.accent.withValues(alpha: highlight ? 0.92 : 0.72),
+            const Color(0xFF0D1523),
+          ],
+        ),
+        boxShadow: highlight
+            ? const [
+                BoxShadow(
+                  color: Color(0x33F4C025),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Center(
+              child: Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.16),
+                ),
+                child: Text(
+                  contact.initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Text(
+            contact.relation.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFFF4C025),
+              letterSpacing: 1,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            contact.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFFF4EBD0),
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BirthdayStackScreenState extends State<_BirthdayStackScreen> {
