@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pith/app.dart';
 
 void main() {
-  testWidgets('renders shell, opens birthday stack, power search and profile', (WidgetTester tester) async {
+  testWidgets('renders shell, opens birthday stack, power search, radar and profile', (WidgetTester tester) async {
     await tester.pumpWidget(const PithApp());
     await tester.pumpAndSettle();
 
@@ -42,5 +42,12 @@ void main() {
     );
 
     expect(find.text('QUICK SPARKS'), findsOneWidget);
+
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Trending'), findsOneWidget);
+    expect(find.text('Moments from the weekend'), findsOneWidget);
+    expect(find.text('RADAR'), findsOneWidget);
   });
 }

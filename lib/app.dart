@@ -7,9 +7,9 @@ import 'core/theme/pith_theme.dart';
 import 'features/birthdays/birthday_stack_screen.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/profile/profile_canvas_screen.dart';
+import 'features/radar/relationship_radar_screen.dart';
 import 'features/search/power_search_screen.dart';
 import 'features/shared/common_widgets.dart';
-import 'features/shared/preview_screen.dart';
 
 class PithApp extends StatelessWidget {
   const PithApp({super.key});
@@ -159,6 +159,28 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
+  static const _radarStories = [
+    RadarStory(label: 'Trending', highlighted: true, accent: Color(0xFFF4C025)),
+    RadarStory(label: 'Favorites', highlighted: false, accent: Color(0xFF8C9AB2)),
+    RadarStory(label: 'Friends', highlighted: false, accent: Color(0xFF7590C0)),
+    RadarStory(label: 'Family', highlighted: false, accent: Color(0xFFBA8B66)),
+  ];
+
+  static const _radarFeedCards = [
+    RadarFeedCard(
+      title: 'Moments from the weekend',
+      description: 'Exploring the city lights with the crew.',
+      actionLabel: 'View',
+      gradient: [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
+    ),
+    RadarFeedCard(
+      title: 'New Project Launch',
+      description: 'Finally sharing what I\'ve been working on.',
+      actionLabel: 'Read',
+      gradient: [Color(0xFF7F6652), Color(0xFF201716), Color(0xFF42506B)],
+    ),
+  ];
+
   static const _profile = ContactProfile(
     name: 'Julian Vane',
     subtitle: 'LONDON — ART CURATOR & SAILOR',
@@ -253,17 +275,9 @@ class _PithShellState extends State<PithShell>
         onBack: () => setState(() => _currentIndex = 0),
         onOpenSearch: _openSearch,
       ),
-      const PreviewScreen(
-        title: 'Relationship Calendar',
-        eyebrow: 'Base para radar y agenda',
-        description:
-            'Aqui conviene unir cumpleanos, recordatorios y densidad de interaccion para preparar el Relationship Radar.',
-        bulletPoints: [
-          'Eventos por contacto y por circulo.',
-          'Agrupacion por dia para cargas de 60+ cumpleanos.',
-          'Puente directo hacia Supabase cuando entremos a datos.',
-        ],
-        icon: Icons.radar_rounded,
+      const RelationshipRadarScreen(
+        stories: _radarStories,
+        feedCards: _radarFeedCards,
       ),
       const ProfileCanvasScreen(
         profile: _profile,

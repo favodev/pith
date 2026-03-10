@@ -89,6 +89,32 @@ class SearchContact {
   final bool highlighted;
 }
 
+class RadarStory {
+  const RadarStory({
+    required this.label,
+    required this.highlighted,
+    required this.accent,
+  });
+
+  final String label;
+  final bool highlighted;
+  final Color accent;
+}
+
+class RadarFeedCard {
+  const RadarFeedCard({
+    required this.title,
+    required this.description,
+    required this.actionLabel,
+    required this.gradient,
+  });
+
+  final String title;
+  final String description;
+  final String actionLabel;
+  final List<Color> gradient;
+}
+
 class ProfileInterest {
   const ProfileInterest({
     required this.label,
