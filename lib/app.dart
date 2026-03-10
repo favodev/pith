@@ -6,6 +6,7 @@ import 'core/models/pith_models.dart';
 import 'core/theme/pith_theme.dart';
 import 'features/birthdays/birthday_stack_screen.dart';
 import 'features/home/home_dashboard_screen.dart';
+import 'features/profile/profile_canvas_screen.dart';
 import 'features/search/power_search_screen.dart';
 import 'features/shared/common_widgets.dart';
 import 'features/shared/preview_screen.dart';
@@ -158,6 +159,36 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
+  static const _profile = ContactProfile(
+    name: 'Julian Vane',
+    subtitle: 'LONDON — ART CURATOR & SAILOR',
+    initials: 'JV',
+    interests: [
+      ProfileInterest(label: 'Light Roast', icon: Icons.coffee_rounded),
+      ProfileInterest(label: 'Analog Vinyl', icon: Icons.album_rounded),
+      ProfileInterest(label: 'Coastal Racing', icon: Icons.sailing_rounded),
+      ProfileInterest(label: 'Brutalism', icon: Icons.architecture_rounded),
+    ],
+    sparks: [
+      QuickSparkEntry(
+        dateLabel: 'OCT 14, 2023',
+        content:
+            'Mentioned wanting a first edition of "The Old Man and the Sea". Prefers the 1952 Scribner\'s cover.',
+        highlighted: true,
+      ),
+      QuickSparkEntry(
+        dateLabel: 'SEP 28, 2023',
+        content:
+            'Gift Idea: A high-quality set of brass drafting tools for his architectural sketches.',
+      ),
+      QuickSparkEntry(
+        dateLabel: 'AUG 12, 2023',
+        content:
+            'Loves bitter chocolate and small-batch mezcal. Specifically mentions Joven styles.',
+      ),
+    ],
+  );
+
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Home', icon: Icons.home_rounded),
     ShellTabItem(label: 'Stacks', icon: Icons.layers_rounded),
@@ -234,17 +265,8 @@ class _PithShellState extends State<PithShell>
         ],
         icon: Icons.radar_rounded,
       ),
-      const PreviewScreen(
-        title: 'Profile Canvas',
-        eyebrow: 'Quick Sparks y detalle relacional',
-        description:
-            'El perfil sera la pantalla mas rica en contexto: intereses, timeline de sparks y acciones rapidas por contacto.',
-        bulletPoints: [
-          'Timeline vertical con sparks fechados.',
-          'Intereses con iconografia ligera.',
-          'Entrada tipo comando para capturar notas en segundos.',
-        ],
-        icon: Icons.auto_awesome_rounded,
+      const ProfileCanvasScreen(
+        profile: _profile,
       ),
     ];
 

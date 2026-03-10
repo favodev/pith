@@ -88,3 +88,41 @@ class SearchContact {
   final Color statusColor;
   final bool highlighted;
 }
+
+class ProfileInterest {
+  const ProfileInterest({
+    required this.label,
+    required this.icon,
+  });
+
+  final String label;
+  final IconData icon;
+}
+
+class QuickSparkEntry {
+  const QuickSparkEntry({
+    required this.dateLabel,
+    required this.content,
+    this.highlighted = false,
+  });
+
+  final String dateLabel;
+  final String content;
+  final bool highlighted;
+}
+
+class ContactProfile {
+  const ContactProfile({
+    required this.name,
+    required this.subtitle,
+    required this.initials,
+    required this.interests,
+    required this.sparks,
+  });
+
+  final String name;
+  final String subtitle;
+  final String initials;
+  final List<ProfileInterest> interests;
+  final List<QuickSparkEntry> sparks;
+}
