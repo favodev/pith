@@ -1,17 +1,5 @@
-# pith
+# Pith
 
-A new Flutter project.
+Pith es un pCRM personal con enfoque premium para gestionar relaciones, cumpleaños y microdetalles importantes sin caer en una agenda genérica.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+La app está pensada alrededor de cuatro ideas: un `Stacked Deck` para días con muchos cumpleaños, `Quick Sparks` para capturar notas rápidas en lenguaje natural, `Profile Canvas` para convertir esas notas en contexto útil por contacto y `Relationship Radar` para visualizar la densidad de interacción de la red.

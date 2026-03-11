@@ -45,7 +45,14 @@ void main() {
     expect(find.text('Eleanor Thorne'), findsWidgets);
     expect(find.text('Delivered'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.tap(find.text('View Details'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Eleanor Thorne'), findsOneWidget);
+    expect(find.text('FAMILY — TURNS 58'), findsOneWidget);
+    expect(find.text('Sunday Roast'), findsOneWidget);
+
+    await tester.tap(find.text('Stacks'));
     await tester.pumpAndSettle();
 
     expect(find.text('60 Birthdays Today'), findsOneWidget);
@@ -62,9 +69,9 @@ void main() {
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Julian Vane'), findsOneWidget);
+    expect(find.text('Eleanor Thorne'), findsOneWidget);
     expect(find.text('CURATED INTERESTS'), findsOneWidget);
-    expect(find.text('90s Rap'), findsOneWidget);
+    expect(find.text('Sunday Roast'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('QUICK SPARKS'),
@@ -73,7 +80,7 @@ void main() {
     );
 
     expect(find.text('QUICK SPARKS'), findsOneWidget);
-    expect(find.text('Le gusta el rap de los 90.'), findsOneWidget);
+    expect(find.text('Prefers intimate birthday dinners over large gatherings.'), findsOneWidget);
 
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();

@@ -41,7 +41,8 @@ class _PithShellState extends State<PithShell>
   bool _isSearchVisible = false;
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
-  late ContactProfile _profile;
+  late Map<String, ContactProfile> _profiles;
+  String _activeProfileName = 'Julian Vane';
   late final AnimationController _fanOutController;
 
   static const _deck = DeckSummary(
@@ -186,7 +187,7 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
-  static const _initialProfile = ContactProfile(
+  static const _initialJulianProfile = ContactProfile(
     name: 'Julian Vane',
     subtitle: 'LONDON — ART CURATOR & SAILOR',
     initials: 'JV',
@@ -216,6 +217,33 @@ class _PithShellState extends State<PithShell>
     ],
   );
 
+  static const _initialEleanorProfile = ContactProfile(
+    name: 'Eleanor Thorne',
+    subtitle: 'FAMILY — TURNS 58',
+    initials: 'ET',
+    interests: [
+      ProfileInterest(label: 'Sunday Roast', icon: Icons.restaurant_rounded),
+      ProfileInterest(label: 'Garden Evenings', icon: Icons.local_florist_rounded),
+      ProfileInterest(label: 'Opera Nights', icon: Icons.music_note_rounded),
+      ProfileInterest(label: 'Handwritten Notes', icon: Icons.edit_rounded),
+    ],
+    sparks: [
+      QuickSparkEntry(
+        dateLabel: 'NOV 02, 2023',
+        content: 'Prefers intimate birthday dinners over large gatherings.',
+        highlighted: true,
+      ),
+      QuickSparkEntry(
+        dateLabel: 'SEP 11, 2023',
+        content: 'Always appreciates flowers in warm cream tones and handwritten cards.',
+      ),
+      QuickSparkEntry(
+        dateLabel: 'JUN 18, 2023',
+        content: 'Loves classic piano recordings and long Sunday lunches with family.',
+      ),
+    ],
+  );
+
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Home', icon: Icons.home_rounded),
     ShellTabItem(label: 'Stacks', icon: Icons.layers_rounded),
@@ -226,7 +254,10 @@ class _PithShellState extends State<PithShell>
   @override
   void initState() {
     super.initState();
-    _profile = _initialProfile;
+    _profiles = {
+      _initialJulianProfile.name: _initialJulianProfile,
+      _initialEleanorProfile.name: _initialEleanorProfile,
+    };
     _fanOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 820),
@@ -267,8 +298,51 @@ class _PithShellState extends State<PithShell>
     setState(() => _isSearchVisible = false);
   }
 
+  ContactProfile get _activeProfile =>
+      _profiles[_activeProfileName] ?? _initialJulianProfile;
+
+  ContactProfile _profileForContact(BirthdayContact contact) {
+    return _profiles[contact.name] ??
+        ContactProfile(
+          name: contact.name,
+          subtitle: '${contact.relation.toUpperCase()} — ${contact.subtitle.toUpperCase()}',
+          initials: contact.initials,
+          interests: const [
+            ProfileInterest(label: 'Thoughtful Gifts', icon: Icons.card_giftcard_rounded),
+            ProfileInterest(label: 'Warm Follow-ups', icon: Icons.favorite_border_rounded),
+            ProfileInterest(label: 'Shared Moments', icon: Icons.auto_awesome_rounded),
+          ],
+          sparks: const [
+            QuickSparkEntry(
+              dateLabel: 'TODAY',
+              content: 'Profile created from the birthday stack flow to continue the conversation.',
+              highlighted: true,
+            ),
+          ],
+        );
+  }
+
+  ContactProfile _resolveProfileForSpark(String value) {
+    final match = RegExp(r'^@([^:]+):').firstMatch(value.trim());
+    if (match == null) {
+      return _activeProfile;
+    }
+
+    final mention = match.group(1)?.trim().toLowerCase() ?? '';
+    for (final entry in _profiles.values) {
+      final name = entry.name.toLowerCase();
+      final initials = entry.initials.toLowerCase();
+      if (name.contains(mention) || mention.contains(initials) || initials.contains(mention)) {
+        return entry;
+      }
+    }
+
+    return _activeProfile;
+  }
+
   void _sendBirthdayNote(BirthdayContact contact) {
     setState(() {
+      _profiles[contact.name] = _profileForContact(contact);
       _noteReceipt = NoteDeliveryReceipt(
         recipientName: contact.name,
         recipientLabel: 'RECIPIENT',
@@ -291,14 +365,19 @@ class _PithShellState extends State<PithShell>
   }
 
   void _viewNoteDetails() {
+    final receipt = _noteReceipt;
     setState(() {
+      if (receipt != null) {
+        _activeProfileName = receipt.recipientName;
+      }
       _noteReceipt = null;
       _currentIndex = 3;
     });
   }
 
   void _submitSpark(String value) {
-    final parsed = QuickSparkParser.parse(input: value, profile: _profile);
+    final targetProfile = _resolveProfileForSpark(value);
+    final parsed = QuickSparkParser.parse(input: value, profile: targetProfile);
     if (parsed == null) {
       setState(() {
         _sparkFeedback = 'Spark no valido. Usa @Julian: ... o escribe una nota directa.';
@@ -306,17 +385,18 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
-    final updatedInterests = [..._profile.interests, ...parsed.inferredInterests];
+    final updatedInterests = [...targetProfile.interests, ...parsed.inferredInterests];
     final addedLabels = parsed.inferredInterests.map((entry) => entry.label).toList();
 
     setState(() {
-      _profile = _profile.copyWith(
+      _profiles[targetProfile.name] = targetProfile.copyWith(
         interests: updatedInterests.take(6).toList(),
-        sparks: [parsed.spark, ..._profile.sparks],
+        sparks: [parsed.spark, ...targetProfile.sparks],
       );
+      _activeProfileName = targetProfile.name;
       _sparkFeedback = addedLabels.isEmpty
-          ? 'Spark guardado en ${_profile.name}.'
-          : 'Spark guardado en ${_profile.name} • Nuevos tags: ${addedLabels.join(', ')}';
+          ? 'Spark guardado en ${targetProfile.name}.'
+          : 'Spark guardado en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')}';
     });
   }
 
@@ -342,7 +422,7 @@ class _PithShellState extends State<PithShell>
         feedCards: _radarFeedCards,
       ),
       ProfileCanvasScreen(
-        profile: _profile,
+        profile: _activeProfile,
         onSubmitSpark: _submitSpark,
         sparkFeedback: _sparkFeedback,
       ),
