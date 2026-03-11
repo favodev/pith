@@ -10,6 +10,7 @@ import 'features/profile/profile_canvas_screen.dart';
 import 'features/radar/relationship_radar_screen.dart';
 import 'features/search/power_search_screen.dart';
 import 'features/sparks/quick_spark_parser.dart';
+import 'features/success/note_success_screen.dart';
 import 'features/shared/common_widgets.dart';
 
 class PithApp extends StatelessWidget {
@@ -38,6 +39,7 @@ class _PithShellState extends State<PithShell>
   int _currentIndex = 0;
   bool _isFanOutVisible = false;
   bool _isSearchVisible = false;
+  NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   late ContactProfile _profile;
   late final AnimationController _fanOutController;
@@ -86,7 +88,7 @@ class _PithShellState extends State<PithShell>
       actionIcon: Icons.card_giftcard_rounded,
     ),
     BirthdayContact(
-      name: 'Julian Vance',
+      name: 'Julian Vane',
       relation: 'Brother',
       subtitle: 'Turns 24',
       initials: 'JV',
@@ -265,6 +267,36 @@ class _PithShellState extends State<PithShell>
     setState(() => _isSearchVisible = false);
   }
 
+  void _sendBirthdayNote(BirthdayContact contact) {
+    setState(() {
+      _noteReceipt = NoteDeliveryReceipt(
+        recipientName: contact.name,
+        recipientLabel: 'RECIPIENT',
+        initials: contact.initials,
+        statusLabel: 'Delivered',
+        accent: const Color(0xFFF4C025),
+      );
+    });
+  }
+
+  void _closeNoteSuccess() {
+    setState(() => _noteReceipt = null);
+  }
+
+  void _returnToDashboard() {
+    setState(() {
+      _noteReceipt = null;
+      _currentIndex = 0;
+    });
+  }
+
+  void _viewNoteDetails() {
+    setState(() {
+      _noteReceipt = null;
+      _currentIndex = 3;
+    });
+  }
+
   void _submitSpark(String value) {
     final parsed = QuickSparkParser.parse(input: value, profile: _profile);
     if (parsed == null) {
@@ -303,6 +335,7 @@ class _PithShellState extends State<PithShell>
         contacts: _birthdayContacts,
         onBack: () => setState(() => _currentIndex = 0),
         onOpenSearch: _openSearch,
+        onSendNote: _sendBirthdayNote,
       ),
       const RelationshipRadarScreen(
         stories: _radarStories,
@@ -359,9 +392,18 @@ class _PithShellState extends State<PithShell>
                 onClose: _closeSearch,
               ),
             ),
+          if (_noteReceipt != null)
+            Positioned.fill(
+              child: NoteSuccessScreen(
+                receipt: _noteReceipt!,
+                onClose: _closeNoteSuccess,
+                onReturnToDashboard: _returnToDashboard,
+                onViewDetails: _viewNoteDetails,
+              ),
+            ),
         ],
       ),
-      bottomNavigationBar: _isSearchVisible
+      bottomNavigationBar: _isSearchVisible || _noteReceipt != null
           ? null
           : Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),

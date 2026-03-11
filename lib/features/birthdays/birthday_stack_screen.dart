@@ -9,11 +9,13 @@ class BirthdayStackScreen extends StatefulWidget {
     required this.contacts,
     required this.onBack,
     required this.onOpenSearch,
+    required this.onSendNote,
   });
 
   final List<BirthdayContact> contacts;
   final VoidCallback onBack;
   final VoidCallback onOpenSearch;
+  final ValueChanged<BirthdayContact> onSendNote;
 
   @override
   State<BirthdayStackScreen> createState() => _BirthdayStackScreenState();
@@ -144,7 +146,12 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                           child: Column(
                             children: [
                               for (final contact in leftColumn) ...[
-                                BirthdayCard(contact: contact),
+                                BirthdayCard(
+                                  contact: contact,
+                                  onSendNote: contact.actionIcon == null
+                                      ? null
+                                      : () => widget.onSendNote(contact),
+                                ),
                                 const SizedBox(height: 16),
                               ],
                             ],
@@ -155,7 +162,12 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                           child: Column(
                             children: [
                               for (final contact in rightColumn) ...[
-                                BirthdayCard(contact: contact),
+                                BirthdayCard(
+                                  contact: contact,
+                                  onSendNote: contact.actionIcon == null
+                                      ? null
+                                      : () => widget.onSendNote(contact),
+                                ),
                                 const SizedBox(height: 16),
                               ],
                             ],
@@ -516,9 +528,10 @@ class _BirthdayTab extends StatelessWidget {
 }
 
 class BirthdayCard extends StatelessWidget {
-  const BirthdayCard({super.key, required this.contact});
+  const BirthdayCard({super.key, required this.contact, this.onSendNote});
 
   final BirthdayContact contact;
+  final VoidCallback? onSendNote;
 
   @override
   Widget build(BuildContext context) {
@@ -642,7 +655,21 @@ class BirthdayCard extends StatelessWidget {
                         ),
                       ),
                       if (contact.actionIcon != null)
-                        Icon(contact.actionIcon, color: const Color(0xFFF4C025), size: 22),
+                        GestureDetector(
+                          onTap: onSendNote,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0x1AF4C025),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              contact.actionIcon,
+                              color: const Color(0xFFF4C025),
+                              size: 22,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ],

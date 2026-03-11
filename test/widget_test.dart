@@ -35,6 +35,21 @@ void main() {
     expect(find.text('PRIORITY WISHES'), findsOneWidget);
     expect(find.text('Eleanor Thorne'), findsOneWidget);
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -220));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.card_giftcard_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Note Sent'), findsOneWidget);
+    expect(find.text('Eleanor Thorne'), findsWidgets);
+    expect(find.text('Delivered'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('60 Birthdays Today'), findsOneWidget);
+
     await tester.tap(find.byIcon(Icons.search_rounded).first);
     await tester.pumpAndSettle();
 
