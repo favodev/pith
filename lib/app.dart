@@ -43,6 +43,7 @@ class _PithShellState extends State<PithShell>
   String? _sparkFeedback;
   late Map<String, ContactProfile> _profiles;
   String _activeProfileName = 'Julian Vane';
+  int _profileReturnIndex = 0;
   late final AnimationController _fanOutController;
 
   static const _deck = DeckSummary(
@@ -370,8 +371,33 @@ class _PithShellState extends State<PithShell>
       if (receipt != null) {
         _activeProfileName = receipt.recipientName;
       }
+      _profileReturnIndex = 1;
       _noteReceipt = null;
       _currentIndex = 3;
+    });
+  }
+
+  void _openProfileFromTab() {
+    setState(() {
+      _profileReturnIndex = _currentIndex == 3 ? 0 : _currentIndex;
+      _currentIndex = 3;
+    });
+  }
+
+  void _backFromProfile() {
+    setState(() {
+      _currentIndex = _profileReturnIndex;
+    });
+  }
+
+  void _onNavTap(int index) {
+    if (index == 3) {
+      _openProfileFromTab();
+      return;
+    }
+
+    setState(() {
+      _currentIndex = index;
     });
   }
 
@@ -424,6 +450,7 @@ class _PithShellState extends State<PithShell>
       ProfileCanvasScreen(
         profile: _activeProfile,
         onSubmitSpark: _submitSpark,
+        onBack: _backFromProfile,
         sparkFeedback: _sparkFeedback,
       ),
     ];
@@ -509,7 +536,7 @@ class _PithShellState extends State<PithShell>
                             child: ShellNavItem(
                               tab: _tabs[index],
                               selected: _currentIndex == index,
-                              onTap: () => setState(() => _currentIndex = index),
+                              onTap: () => _onNavTap(index),
                             ),
                           ),
                       ],

@@ -52,6 +52,11 @@ void main() {
     expect(find.text('FAMILY — TURNS 58'), findsOneWidget);
     expect(find.text('Sunday Roast'), findsOneWidget);
 
+    await tester.tap(find.text('BACK TO NETWORK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('60 Birthdays Today'), findsOneWidget);
+
     await tester.tap(find.text('Stacks'));
     await tester.pumpAndSettle();
 

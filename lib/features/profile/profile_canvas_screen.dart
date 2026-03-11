@@ -7,11 +7,13 @@ class ProfileCanvasScreen extends StatelessWidget {
     super.key,
     required this.profile,
     required this.onSubmitSpark,
+    required this.onBack,
     this.sparkFeedback,
   });
 
   final ContactProfile profile;
   final ValueChanged<String> onSubmitSpark;
+  final VoidCallback onBack;
   final String? sparkFeedback;
 
   @override
@@ -28,22 +30,29 @@ class ProfileCanvasScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.arrow_back_ios_rounded,
-                          size: 18,
-                          color: Color(0x889AA8C0),
+                    InkWell(
+                      onTap: onBack,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.arrow_back_ios_rounded,
+                              size: 18,
+                              color: Color(0x889AA8C0),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'BACK TO NETWORK',
+                              style: textTheme.labelMedium?.copyWith(
+                                color: const Color(0x889AA8C0),
+                                letterSpacing: 3,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'BACK TO NETWORK',
-                          style: textTheme.labelMedium?.copyWith(
-                            color: const Color(0x889AA8C0),
-                            letterSpacing: 3,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     const Row(
                       children: [
