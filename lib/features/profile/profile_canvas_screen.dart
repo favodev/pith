@@ -6,9 +6,13 @@ class ProfileCanvasScreen extends StatelessWidget {
   const ProfileCanvasScreen({
     super.key,
     required this.profile,
+    required this.onSubmitSpark,
+    this.sparkFeedback,
   });
 
   final ContactProfile profile;
+  final ValueChanged<String> onSubmitSpark;
+  final String? sparkFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +139,21 @@ class ProfileCanvasScreen extends StatelessWidget {
                   const SizedBox(height: 34),
                 ],
                 const SizedBox(height: 24),
-                const _SparkComposer(),
+                _SparkComposer(
+                  profileName: profile.name,
+                  onSubmitted: onSubmitSpark,
+                ),
+                if (sparkFeedback != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    sparkFeedback!,
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFFF4C025),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 const _ProfileActionsRow(),
                 const SizedBox(height: 130),
@@ -255,8 +273,35 @@ class _SparkTimelineEntry extends StatelessWidget {
   }
 }
 
-class _SparkComposer extends StatelessWidget {
-  const _SparkComposer();
+class _SparkComposer extends StatefulWidget {
+  const _SparkComposer({required this.profileName, required this.onSubmitted});
+
+  final String profileName;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  State<_SparkComposer> createState() => _SparkComposerState();
+}
+
+class _SparkComposerState extends State<_SparkComposer> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    widget.onSubmitted(_controller.text);
+    _controller.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -267,15 +312,18 @@ class _SparkComposer extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      child: const TextField(
+      child: TextField(
+        controller: _controller,
+        onSubmitted: (_) => _submit(),
+        textInputAction: TextInputAction.done,
         decoration: InputDecoration(
           border: InputBorder.none,
           fillColor: Colors.transparent,
           filled: false,
-          prefixIcon: Icon(Icons.terminal_rounded, color: Color(0x88F4C025)),
-          hintText: 'Add a new spark for Julian...',
-          hintStyle: TextStyle(color: Color(0x449AA8C0)),
-          suffixIcon: Padding(
+          prefixIcon: const Icon(Icons.terminal_rounded, color: Color(0x88F4C025)),
+          hintText: 'Add a new spark for ${widget.profileName}...',
+          hintStyle: const TextStyle(color: Color(0x449AA8C0)),
+          suffixIcon: const Padding(
             padding: EdgeInsets.only(right: 8),
             child: Center(
               widthFactor: 1,
@@ -290,7 +338,7 @@ class _SparkComposer extends StatelessWidget {
             ),
           ),
         ),
-        style: TextStyle(
+        style: const TextStyle(
           color: Color(0xFFF4EBD0),
           fontWeight: FontWeight.w400,
           letterSpacing: 0.2,

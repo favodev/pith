@@ -13,6 +13,21 @@ void main() {
     expect(find.text('Sarah Jenkins'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
 
+    await tester.scrollUntilVisible(
+      find.text('@Julian: le gusta el rap de los 90'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    await tester.enterText(find.byType(TextField).first, '@Julian: le gusta el rap de los 90');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Spark guardado en Julian Vane'), findsOneWidget);
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 900));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('60 Birthdays\ntoday'));
     await tester.pumpAndSettle();
 
@@ -34,6 +49,7 @@ void main() {
 
     expect(find.text('Julian Vane'), findsOneWidget);
     expect(find.text('CURATED INTERESTS'), findsOneWidget);
+    expect(find.text('90s Rap'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('QUICK SPARKS'),
@@ -42,6 +58,7 @@ void main() {
     );
 
     expect(find.text('QUICK SPARKS'), findsOneWidget);
+    expect(find.text('Le gusta el rap de los 90.'), findsOneWidget);
 
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();

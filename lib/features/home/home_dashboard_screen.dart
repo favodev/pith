@@ -10,12 +10,16 @@ class HomeDashboardScreen extends StatelessWidget {
     required this.pulses,
     required this.onOpenBirthdays,
     required this.onOpenSearch,
+    required this.onSubmitSpark,
+    this.sparkFeedback,
   });
 
   final DeckSummary deck;
   final List<PulseItem> pulses;
   final VoidCallback onOpenBirthdays;
   final VoidCallback onOpenSearch;
+  final ValueChanged<String> onSubmitSpark;
+  final String? sparkFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +62,17 @@ class HomeDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
                 const SizedBox(height: 4),
-                const _QuickSparkInput(),
+                _QuickSparkInput(onSubmitted: onSubmitSpark),
+                if (sparkFeedback != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    sparkFeedback!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFFF4C025),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 const _ShortcutRow(),
                 const SizedBox(height: 120),
@@ -327,8 +341,34 @@ class _PulseCard extends StatelessWidget {
   }
 }
 
-class _QuickSparkInput extends StatelessWidget {
-  const _QuickSparkInput();
+class _QuickSparkInput extends StatefulWidget {
+  const _QuickSparkInput({required this.onSubmitted});
+
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  State<_QuickSparkInput> createState() => _QuickSparkInputState();
+}
+
+class _QuickSparkInputState extends State<_QuickSparkInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    widget.onSubmitted(_controller.text);
+    _controller.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -339,11 +379,14 @@ class _QuickSparkInput extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-      child: const TextField(
-        style: TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w500),
-        decoration: InputDecoration(
+      child: TextField(
+        controller: _controller,
+        onSubmitted: (_) => _submit(),
+        textInputAction: TextInputAction.done,
+        style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w500),
+        decoration: const InputDecoration(
           prefixIcon: Icon(Icons.terminal_rounded, color: Color(0xFFF4C025)),
-          hintText: '@Juan: likes vinyl records',
+          hintText: '@Julian: le gusta el rap de los 90',
           suffixIcon: Padding(
             padding: EdgeInsets.only(right: 8),
             child: Center(

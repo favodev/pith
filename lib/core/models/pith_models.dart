@@ -151,4 +151,20 @@ class ContactProfile {
   final String initials;
   final List<ProfileInterest> interests;
   final List<QuickSparkEntry> sparks;
+
+  ContactProfile copyWith({
+    String? name,
+    String? subtitle,
+    String? initials,
+    List<ProfileInterest>? interests,
+    List<QuickSparkEntry>? sparks,
+  }) {
+    return ContactProfile(
+      name: name ?? this.name,
+      subtitle: subtitle ?? this.subtitle,
+      initials: initials ?? this.initials,
+      interests: interests ?? this.interests,
+      sparks: sparks ?? this.sparks,
+    );
+  }
 }

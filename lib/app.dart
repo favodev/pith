@@ -9,6 +9,7 @@ import 'features/home/home_dashboard_screen.dart';
 import 'features/profile/profile_canvas_screen.dart';
 import 'features/radar/relationship_radar_screen.dart';
 import 'features/search/power_search_screen.dart';
+import 'features/sparks/quick_spark_parser.dart';
 import 'features/shared/common_widgets.dart';
 
 class PithApp extends StatelessWidget {
@@ -37,6 +38,8 @@ class _PithShellState extends State<PithShell>
   int _currentIndex = 0;
   bool _isFanOutVisible = false;
   bool _isSearchVisible = false;
+  String? _sparkFeedback;
+  late ContactProfile _profile;
   late final AnimationController _fanOutController;
 
   static const _deck = DeckSummary(
@@ -181,7 +184,7 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
-  static const _profile = ContactProfile(
+  static const _initialProfile = ContactProfile(
     name: 'Julian Vane',
     subtitle: 'LONDON — ART CURATOR & SAILOR',
     initials: 'JV',
@@ -221,6 +224,7 @@ class _PithShellState extends State<PithShell>
   @override
   void initState() {
     super.initState();
+    _profile = _initialProfile;
     _fanOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 820),
@@ -261,6 +265,29 @@ class _PithShellState extends State<PithShell>
     setState(() => _isSearchVisible = false);
   }
 
+  void _submitSpark(String value) {
+    final parsed = QuickSparkParser.parse(input: value, profile: _profile);
+    if (parsed == null) {
+      setState(() {
+        _sparkFeedback = 'Spark no valido. Usa @Julian: ... o escribe una nota directa.';
+      });
+      return;
+    }
+
+    final updatedInterests = [..._profile.interests, ...parsed.inferredInterests];
+    final addedLabels = parsed.inferredInterests.map((entry) => entry.label).toList();
+
+    setState(() {
+      _profile = _profile.copyWith(
+        interests: updatedInterests.take(6).toList(),
+        sparks: [parsed.spark, ..._profile.sparks],
+      );
+      _sparkFeedback = addedLabels.isEmpty
+          ? 'Spark guardado en ${_profile.name}.'
+          : 'Spark guardado en ${_profile.name} • Nuevos tags: ${addedLabels.join(', ')}';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -269,6 +296,8 @@ class _PithShellState extends State<PithShell>
         pulses: _pulses,
         onOpenBirthdays: _openBirthdayStack,
         onOpenSearch: _openSearch,
+        onSubmitSpark: _submitSpark,
+        sparkFeedback: _sparkFeedback,
       ),
       BirthdayStackScreen(
         contacts: _birthdayContacts,
@@ -279,8 +308,10 @@ class _PithShellState extends State<PithShell>
         stories: _radarStories,
         feedCards: _radarFeedCards,
       ),
-      const ProfileCanvasScreen(
+      ProfileCanvasScreen(
         profile: _profile,
+        onSubmitSpark: _submitSpark,
+        sparkFeedback: _sparkFeedback,
       ),
     ];
 
