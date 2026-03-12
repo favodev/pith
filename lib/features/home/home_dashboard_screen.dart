@@ -146,7 +146,7 @@ class _DeckCard extends StatelessWidget {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5EAC5).withValues(alpha: 0.08),
+                color: const Color(0xFF182435).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(34),
               ),
             ),
@@ -158,7 +158,7 @@ class _DeckCard extends StatelessWidget {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5EAC5).withValues(alpha: 0.04),
+                color: const Color(0xFF182435).withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(34),
               ),
             ),
@@ -166,11 +166,11 @@ class _DeckCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4C025),
+              color: const Color(0xFF182435),
               borderRadius: BorderRadius.circular(36),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x33F4C025),
+                  color: Color(0x33000000),
                   blurRadius: 28,
                   offset: Offset(0, 18),
                 ),
@@ -189,7 +189,7 @@ class _DeckCard extends StatelessWidget {
                           Text(
                             'STACKED DECK',
                             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: const Color(0xFF3F3522),
+                              color: const Color(0xFF8392AD),
                               letterSpacing: 4,
                               fontWeight: FontWeight.w800,
                             ),
@@ -198,7 +198,7 @@ class _DeckCard extends StatelessWidget {
                           Text(
                             deck.title,
                             style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                              color: const Color(0xFF101010),
+                              color: const Color(0xFFF4EBD0),
                               fontWeight: FontWeight.w800,
                               height: 1.04,
                               letterSpacing: -1.4,
@@ -210,7 +210,7 @@ class _DeckCard extends StatelessWidget {
                             child: Text(
                               deck.subtitle,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF2E2A1F),
+                                color: const Color(0xFF9AA8C0),
                                 height: 1.25,
                               ),
                             ),
@@ -218,7 +218,7 @@ class _DeckCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Icon(Icons.cake_rounded, color: Color(0x88704E00), size: 62),
+                    const Icon(Icons.cake_rounded, color: Color(0xFFF4C025), size: 62),
                   ],
                 ),
                 const SizedBox(height: 28),

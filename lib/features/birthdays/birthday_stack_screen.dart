@@ -306,11 +306,11 @@ class _DeckFanCoreCard extends StatelessWidget {
       height: 318,
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4C025),
+        color: const Color(0xFF182435),
         borderRadius: BorderRadius.circular(36),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x44F4C025),
+            color: Color(0x33000000),
             blurRadius: 36,
             offset: Offset(0, 18),
           ),
@@ -322,7 +322,7 @@ class _DeckFanCoreCard extends StatelessWidget {
           Text(
             'STACKED DECK',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF3F3522),
+              color: const Color(0xFF8392AD),
               letterSpacing: 4,
               fontWeight: FontWeight.w800,
             ),
@@ -331,7 +331,7 @@ class _DeckFanCoreCard extends StatelessWidget {
           Text(
             '60 Birthdays\ntoday',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: const Color(0xFF111111),
+              color: const Color(0xFFF4EBD0),
               fontWeight: FontWeight.w800,
               height: 1.04,
               letterSpacing: -1.4,

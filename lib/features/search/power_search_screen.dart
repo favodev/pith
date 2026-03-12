@@ -54,7 +54,7 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          color: const Color(0xE6221E10),
+          color: const Color(0xE609111F),
           child: SafeArea(
             child: Column(
               children: [
@@ -89,9 +89,9 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                   child: Container(
                     height: 68,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF4C025).withValues(alpha: 0.09),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.18)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                     ),
                     child: Row(
                       children: [
@@ -128,9 +128,9 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFFF4C025).withValues(alpha: 0.18),
+                              color: Colors.white.withValues(alpha: 0.08),
                             ),
-                            child: const Icon(Icons.close_rounded, color: Color(0xFFF4C025)),
+                            child: const Icon(Icons.close_rounded, color: Color(0xFF9AA8C0)),
                           ),
                         ),
                       ],
@@ -140,21 +140,25 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                 const SizedBox(height: 18),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 22),
-                  child: Row(
-                    children: [
-                      _SearchChip(
-                        label: 'Nearby: San Carlos',
-                        icon: Icons.location_on_rounded,
-                        selected: true,
-                        trailing: Icons.expand_more_rounded,
-                      ),
-                      SizedBox(width: 12),
-                      _SearchChip(
-                        label: 'Contacts',
-                        icon: Icons.group_rounded,
-                        trailing: Icons.expand_more_rounded,
-                      ),
-                    ],
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _SearchChip(
+                          label: 'Nearby: San Carlos',
+                          icon: Icons.location_on_rounded,
+                          selected: true,
+                          trailing: Icons.expand_more_rounded,
+                        ),
+                        _SearchChip(
+                          label: 'Contacts',
+                          icon: Icons.group_rounded,
+                          trailing: Icons.expand_more_rounded,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -175,7 +179,7 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                     child: Text(
                       'CONTACTS INTERESTED IN "${query.isEmpty ? 'RAP' : query.toUpperCase()}"',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: const Color(0xAAAF8F2A),
+                        color: const Color(0xFF8392AD),
                         letterSpacing: 3,
                         fontWeight: FontWeight.w800,
                       ),
@@ -226,12 +230,12 @@ class _SearchChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: selected
             ? const Color(0xFFF4C025)
-            : const Color(0xFFF4C025).withValues(alpha: 0.08),
+            : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
           color: selected
               ? Colors.transparent
-              : const Color(0xFFF4C025).withValues(alpha: 0.14),
+              : Colors.white.withValues(alpha: 0.08),
         ),
         boxShadow: selected
             ? const [
@@ -249,13 +253,13 @@ class _SearchChip extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: selected ? const Color(0xFF111111) : const Color(0xFFF4C025),
+            color: selected ? const Color(0xFF111111) : const Color(0xFF9AA8C0),
           ),
           const SizedBox(width: 10),
           Text(
             label,
             style: TextStyle(
-              color: selected ? const Color(0xFF111111) : const Color(0xFFEAE3CC),
+              color: selected ? const Color(0xFF111111) : const Color(0xFF9AA8C0),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -264,7 +268,7 @@ class _SearchChip extends StatelessWidget {
             Icon(
               trailing,
               size: 20,
-              color: selected ? const Color(0xFF111111) : const Color(0xAAEAE3CC),
+              color: selected ? const Color(0xFF111111) : const Color(0xAA9AA8C0),
             ),
           ],
         ],
@@ -300,8 +304,8 @@ class _SearchResultRow extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFF4EBD0).withValues(alpha: 0.12),
-                    border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.24), width: 2),
+                    color: Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 2),
                   ),
                   child: Text(
                     contact.initials,
@@ -321,7 +325,7 @@ class _SearchResultRow extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: contact.statusColor,
-                      border: Border.all(color: const Color(0xFF221E10), width: 2),
+                      border: Border.all(color: const Color(0xFF09111F), width: 2),
                     ),
                   ),
                 ),
@@ -356,7 +360,7 @@ class _SearchResultRow extends StatelessWidget {
               Icons.auto_awesome_rounded,
               color: contact.highlighted
                   ? const Color(0xFFF4C025)
-                  : const Color(0x66F4C025),
+                  : Colors.white.withValues(alpha: 0.1),
             ),
           ],
         ),
@@ -376,11 +380,11 @@ class _SearchMapCard extends StatelessWidget {
           height: 180,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.14)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0x554C4630), Color(0x333A3625)],
+              colors: [Color(0x55182435), Color(0x3309111F)],
             ),
           ),
           child: Stack(
@@ -411,7 +415,7 @@ class _SearchMapCard extends StatelessWidget {
         Text(
           'ACTIVE SEARCH IN SAN CARLOS',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: const Color(0xAAAF8F2A),
+            color: const Color(0xFF8392AD),
             letterSpacing: 3,
             fontWeight: FontWeight.w800,
           ),
@@ -425,7 +429,7 @@ class _MapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final linePaint = Paint()
-      ..color = const Color(0x66A29263)
+      ..color = Colors.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
 
