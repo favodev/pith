@@ -10,11 +10,13 @@ class PowerSearchScreen extends StatefulWidget {
     required this.initialQuery,
     required this.results,
     required this.onClose,
+    required this.onSelectResult,
   });
 
   final String initialQuery;
   final List<SearchContact> results;
   final VoidCallback onClose;
+  final ValueChanged<SearchContact> onSelectResult;
 
   @override
   State<PowerSearchScreen> createState() => _PowerSearchScreenState();
@@ -184,7 +186,11 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     children: [
-                      for (final result in filtered) _SearchResultRow(contact: result),
+                      for (final result in filtered)
+                        _SearchResultRow(
+                          contact: result,
+                          onTap: () => widget.onSelectResult(result),
+                        ),
                       const SizedBox(height: 24),
                       const _SearchMapCard(),
                     ],
@@ -268,87 +274,92 @@ class _SearchChip extends StatelessWidget {
 }
 
 class _SearchResultRow extends StatelessWidget {
-  const _SearchResultRow({required this.contact});
+  const _SearchResultRow({required this.contact, this.onTap});
 
   final SearchContact contact;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFF4EBD0).withValues(alpha: 0.12),
-                  border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.24), width: 2),
-                ),
-                child: Text(
-                  contact.initials,
-                  style: const TextStyle(
-                    color: Color(0xFFF4EBD0),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 1,
-                bottom: 1,
-                child: Container(
-                  width: 16,
-                  height: 16,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: contact.statusColor,
-                    border: Border.all(color: const Color(0xFF221E10), width: 2),
+                    color: const Color(0xFFF4EBD0).withValues(alpha: 0.12),
+                    border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.24), width: 2),
+                  ),
+                  child: Text(
+                    contact.initials,
+                    style: const TextStyle(
+                      color: Color(0xFFF4EBD0),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  contact.name,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  contact.description,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF9AA8C0),
+                Positioned(
+                  right: 1,
+                  bottom: 1,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: contact.statusColor,
+                      border: Border.all(color: const Color(0xFF221E10), width: 2),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Icon(
-            Icons.auto_awesome_rounded,
-            color: contact.highlighted
-                ? const Color(0xFFF4C025)
-                : const Color(0x66F4C025),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    contact.name,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    contact.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF9AA8C0),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              Icons.auto_awesome_rounded,
+              color: contact.highlighted
+                  ? const Color(0xFFF4C025)
+                  : const Color(0x66F4C025),
+            ),
+          ],
+        ),
       ),
     );
   }

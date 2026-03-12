@@ -166,6 +166,75 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
+  static const _initialRaphaelProfile = ContactProfile(
+    name: 'Raphael Vance',
+    subtitle: 'SAN CARLOS — PRODUCER & VINYL DIGGER',
+    initials: 'RV',
+    interests: [
+      ProfileInterest(label: '90s Rap', icon: Icons.music_note_rounded),
+      ProfileInterest(label: 'Vinyl Crates', icon: Icons.album_rounded),
+      ProfileInterest(label: 'Studio Nights', icon: Icons.graphic_eq_rounded),
+      ProfileInterest(label: 'Analog Mixers', icon: Icons.tune_rounded),
+    ],
+    sparks: [
+      QuickSparkEntry(
+        dateLabel: 'NOV 09, 2023',
+        content: 'Wants a rare pressing of Nas - Illmatic (1994).',
+        highlighted: true,
+      ),
+      QuickSparkEntry(
+        dateLabel: 'OCT 02, 2023',
+        content: 'Prefers warm lighting and analog gear when hosting sessions.',
+      ),
+    ],
+  );
+
+  static const _initialSarahProfile = ContactProfile(
+    name: 'Sarah Rapp',
+    subtitle: 'SAN CARLOS — CURATOR & COLLECTOR',
+    initials: 'SR',
+    interests: [
+      ProfileInterest(label: 'Vintage Hip-Hop', icon: Icons.album_rounded),
+      ProfileInterest(label: 'Archive Finds', icon: Icons.book_rounded),
+      ProfileInterest(label: 'Gallery Walks', icon: Icons.palette_rounded),
+      ProfileInterest(label: 'Late Espresso', icon: Icons.coffee_rounded),
+    ],
+    sparks: [
+      QuickSparkEntry(
+        dateLabel: 'OCT 21, 2023',
+        content: 'Collecting underground tapes from early 90s crews.',
+        highlighted: true,
+      ),
+      QuickSparkEntry(
+        dateLabel: 'SEP 08, 2023',
+        content: 'Always asks for liner notes and provenance details.',
+      ),
+    ],
+  );
+
+  static const _initialJulianRProfile = ContactProfile(
+    name: 'Julian Rappaport',
+    subtitle: 'SAN CARLOS — PRODUCER & LOFI ARTIST',
+    initials: 'JR',
+    interests: [
+      ProfileInterest(label: 'Lofi Beats', icon: Icons.headphones_rounded),
+      ProfileInterest(label: 'Downtempo', icon: Icons.graphic_eq_rounded),
+      ProfileInterest(label: 'Modular Synths', icon: Icons.settings_input_component_rounded),
+      ProfileInterest(label: 'Late Walks', icon: Icons.nights_stay_rounded),
+    ],
+    sparks: [
+      QuickSparkEntry(
+        dateLabel: 'NOV 05, 2023',
+        content: 'Wants a custom tape run for his next EP release.',
+        highlighted: true,
+      ),
+      QuickSparkEntry(
+        dateLabel: 'AUG 19, 2023',
+        content: 'Prefers analog tape warmth over digital mastering.',
+      ),
+    ],
+  );
+
   static const _radarStories = [
     RadarStory(label: 'Trending', highlighted: true, accent: Color(0xFFF4C025)),
     RadarStory(label: 'Favorites', highlighted: false, accent: Color(0xFF8C9AB2)),
@@ -258,6 +327,9 @@ class _PithShellState extends State<PithShell>
     _profiles = {
       _initialJulianProfile.name: _initialJulianProfile,
       _initialEleanorProfile.name: _initialEleanorProfile,
+      _initialRaphaelProfile.name: _initialRaphaelProfile,
+      _initialSarahProfile.name: _initialSarahProfile,
+      _initialJulianRProfile.name: _initialJulianRProfile,
     };
     _fanOutController = AnimationController(
       vsync: this,
@@ -297,6 +369,15 @@ class _PithShellState extends State<PithShell>
 
   void _closeSearch() {
     setState(() => _isSearchVisible = false);
+  }
+
+  void _openProfileFromSearch(SearchContact contact) {
+    setState(() {
+      _activeProfileName = contact.name;
+      _profileReturnIndex = _currentIndex;
+      _isSearchVisible = false;
+      _currentIndex = 3;
+    });
   }
 
   ContactProfile get _activeProfile =>
@@ -497,6 +578,7 @@ class _PithShellState extends State<PithShell>
                 initialQuery: 'Rap',
                 results: _searchContacts,
                 onClose: _closeSearch,
+                onSelectResult: _openProfileFromSearch,
               ),
             ),
           if (_noteReceipt != null)
