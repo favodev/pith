@@ -75,6 +75,18 @@ void main() {
     expect(find.text('SAN CARLOS — PRODUCER & VINYL DIGGER'), findsOneWidget);
     expect(find.text('90s Rap'), findsOneWidget);
 
+    await tester.scrollUntilVisible(
+      find.text('GIFT INTELLIGENCE'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('GIFT INTELLIGENCE'), findsOneWidget);
+    expect(find.text('Rare 90s hip-hop vinyl pressing'), findsOneWidget);
+
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 1200));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('BACK TO NETWORK'));
     await tester.pumpAndSettle();
 
