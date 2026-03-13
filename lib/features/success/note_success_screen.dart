@@ -42,7 +42,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xF2141207),
+      color: const Color(0xF00A0C12),
       child: SafeArea(
         child: AnimatedBuilder(
           animation: _controller,
@@ -80,7 +80,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                           const Text(
                             'PITH',
                             style: TextStyle(
-                              color: Color(0xFFF2EEE3),
+                              color: Color(0xFFF4EBD0),
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.4,
@@ -122,7 +122,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                     Text(
                                       'Note Sent',
                                       style: TextStyle(
-                                        color: Color(0xFFF5F2E7),
+                                        color: Color(0xFFF8FAFC),
                                         fontSize: 34,
                                         fontWeight: FontWeight.w300,
                                         letterSpacing: -1,
@@ -133,7 +133,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                       'Your message has been delivered with elegance and precision.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: Color(0xB3D1A72E),
+                                        color: Color(0xB39AA8C0),
                                         fontSize: 16,
                                         height: 1.5,
                                       ),
@@ -181,7 +181,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: const Color(0xFFB8C0D4),
                                 side: BorderSide(
-                                  color: const Color(0xFF1A3875).withValues(alpha: 0.85),
+                                  color: Colors.white.withValues(alpha: 0.18),
                                 ),
                                 minimumSize: const Size.fromHeight(64),
                                 shape: RoundedRectangleBorder(
@@ -269,9 +269,9 @@ class _RecipientCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0x14F4C025),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: const Color(0x1FF4C025)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -304,7 +304,7 @@ class _RecipientCard extends StatelessWidget {
                 Text(
                   receipt.recipientLabel,
                   style: const TextStyle(
-                    color: Color(0x99D4A827),
+                    color: Color(0x99C7D2E0),
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 2.2,
@@ -356,10 +356,10 @@ class _SuccessConfetti extends StatelessWidget {
       children: const [
         _AccentDot(top: 0.24, left: 0.22, color: Color(0xFFF4C025), size: 6),
         _AccentDot(top: 0.31, left: 0.74, color: Color(0x66F4C025), size: 6),
-        _AccentDot(top: 0.67, left: 0.28, color: Color(0x668A94A8), size: 5),
+        _AccentDot(top: 0.67, left: 0.28, color: Color(0x66AAB4C5), size: 5),
         _AccentLine(top: 0.43, left: 0.79, angle: 0.8, color: Color(0xFFF4C025)),
         _AccentLine(top: 0.78, left: 0.16, angle: 0.14, color: Color(0x99D4A827)),
-        _AccentLine(top: 0.47, left: 0.12, angle: -0.7, color: Color(0x668A94A8)),
+        _AccentLine(top: 0.47, left: 0.12, angle: -0.7, color: Color(0x66AAB4C5)),
       ],
     );
   }

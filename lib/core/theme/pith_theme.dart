@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 ThemeData buildPithTheme() {
-  const background = Color(0xFF09111F);
-  const surface = Color(0xFF121C2C);
-  const cardSurface = Color(0xFF182435);
+  const background = Color(0xFF0A0C12);
+  const surface = Color(0xFF161B22);
+  const cardSurface = Color(0xFF1E293B);
   const gold = Color(0xFFF4C025);
   const cream = Color(0xFFF4EBD0);
-  const muted = Color(0xFF90A0BA);
+  const muted = Color(0xFF9AA8C0);
 
   const scheme = ColorScheme.dark(
     primary: gold,

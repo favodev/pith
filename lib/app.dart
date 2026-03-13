@@ -545,9 +545,9 @@ class _PithShellState extends State<PithShell>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF0A1426),
-                  Color(0xFF09111F),
-                  Color(0xFF060B14),
+                  Color(0xFF0A0C12),
+                  Color(0xFF0D121A),
+                  Color(0xFF0A0C12),
                 ],
               ),
             ),
