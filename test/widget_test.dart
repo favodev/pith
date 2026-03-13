@@ -41,9 +41,9 @@ void main() {
     await tester.tap(find.byIcon(Icons.card_giftcard_rounded));
     await tester.pumpAndSettle();
 
-    expect(find.text('Note Sent'), findsOneWidget);
+    expect(find.text('Note Saved'), findsOneWidget);
     expect(find.text('Eleanor Thorne'), findsWidgets);
-    expect(find.text('Delivered'), findsOneWidget);
+    expect(find.text('Saved'), findsOneWidget);
 
     await tester.tap(find.text('View Details'));
     await tester.pumpAndSettle();

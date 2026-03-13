@@ -120,7 +120,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                 child: const Column(
                                   children: [
                                     Text(
-                                      'Note Sent',
+                                      'Note Saved',
                                       style: TextStyle(
                                         color: Color(0xFFF8FAFC),
                                         fontSize: 34,
@@ -130,7 +130,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                     ),
                                     SizedBox(height: 12),
                                     Text(
-                                      'Your message has been delivered with elegance and precision.',
+                                      'Your note has been saved to your private relationship memory.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Color(0xB39AA8C0),

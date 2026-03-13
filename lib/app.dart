@@ -427,9 +427,9 @@ class _PithShellState extends State<PithShell>
       _profiles[contact.name] = _profileForContact(contact);
       _noteReceipt = NoteDeliveryReceipt(
         recipientName: contact.name,
-        recipientLabel: 'RECIPIENT',
+        recipientLabel: 'CONTACT',
         initials: contact.initials,
-        statusLabel: 'Delivered',
+        statusLabel: 'Saved',
         accent: const Color(0xFFF4C025),
       );
     });
