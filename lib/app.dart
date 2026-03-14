@@ -72,40 +72,9 @@ class _PithShellState extends State<PithShell>
   late Map<String, ContactProfile> _profiles;
   late List<BirthdayContact> _birthdayContacts;
   late List<SearchContact> _searchContacts;
-  String _activeProfileName = 'Julian Vane';
+  String _activeProfileName = '';
   int _profileReturnIndex = 0;
   late final AnimationController _fanOutController;
-
-  static const _deck = DeckSummary(
-    totalBirthdays: 60,
-    title: '60 Birthdays\ntoday',
-    subtitle: 'A significant moment in your network. Send a note.',
-    avatars: ['S', 'M', 'E', '+57'],
-  );
-
-  static const _pulses = [
-    PulseItem(
-      name: 'Sarah Jenkins',
-      meta: 'Last spoke 3 days ago',
-      detail: 'Designer',
-      initials: 'SJ',
-      tint: Color(0xFF5F89C9),
-    ),
-    PulseItem(
-      name: 'Marcus Aurelius',
-      meta: 'Met at Coffee House',
-      detail: 'Philosophy',
-      initials: 'MA',
-      tint: Color(0xFF7F6FCE),
-    ),
-    PulseItem(
-      name: 'Elena Rodriguez',
-      meta: 'Follow up on partnership',
-      detail: 'Tomorrow',
-      initials: 'ER',
-      tint: Color(0xFFCA7B66),
-    ),
-  ];
 
   static const _defaultBirthdayContacts = [
     BirthdayContact(
@@ -354,15 +323,23 @@ class _PithShellState extends State<PithShell>
   @override
   void initState() {
     super.initState();
-    _profiles = {
-      _initialJulianProfile.name: _initialJulianProfile,
-      _initialEleanorProfile.name: _initialEleanorProfile,
-      _initialRaphaelProfile.name: _initialRaphaelProfile,
-      _initialSarahProfile.name: _initialSarahProfile,
-      _initialJulianRProfile.name: _initialJulianRProfile,
-    };
-    _birthdayContacts = List<BirthdayContact>.from(_defaultBirthdayContacts);
-    _searchContacts = List<SearchContact>.from(_defaultSearchContacts);
+    if (SupabaseSyncService.instance.isEnabled) {
+      _profiles = {};
+      _birthdayContacts = [];
+      _searchContacts = [];
+      _activeProfileName = '';
+    } else {
+      _profiles = {
+        _initialJulianProfile.name: _initialJulianProfile,
+        _initialEleanorProfile.name: _initialEleanorProfile,
+        _initialRaphaelProfile.name: _initialRaphaelProfile,
+        _initialSarahProfile.name: _initialSarahProfile,
+        _initialJulianRProfile.name: _initialJulianRProfile,
+      };
+      _birthdayContacts = List<BirthdayContact>.from(_defaultBirthdayContacts);
+      _searchContacts = List<SearchContact>.from(_defaultSearchContacts);
+      _activeProfileName = _initialJulianProfile.name;
+    }
     _fanOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 820),
@@ -414,6 +391,13 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
+    if (_birthdayContacts.isEmpty) {
+      setState(() {
+        _currentIndex = 1;
+      });
+      return;
+    }
+
     setState(() => _isFanOutVisible = true);
     await _fanOutController.forward();
 
@@ -446,8 +430,24 @@ class _PithShellState extends State<PithShell>
     });
   }
 
-  ContactProfile get _activeProfile =>
-      _profiles[_activeProfileName] ?? _initialJulianProfile;
+  ContactProfile get _activeProfile => _profiles[_activeProfileName] ?? _emptyProfile;
+
+  ContactProfile get _emptyProfile => const ContactProfile(
+        name: 'No contact selected',
+        subtitle: 'ADD YOUR FIRST CONTACT TO START',
+        initials: 'NA',
+        interests: [
+          ProfileInterest(label: 'Private CRM', icon: Icons.lock_rounded),
+          ProfileInterest(label: 'Cloud Sync', icon: Icons.cloud_done_rounded),
+        ],
+        sparks: [
+          QuickSparkEntry(
+            dateLabel: 'TODAY',
+            content: 'Create a contact from the + button in Stacks to begin.',
+            highlighted: true,
+          ),
+        ],
+      );
 
   ContactProfile _profileForContact(BirthdayContact contact) {
     return _profiles[contact.name] ??
@@ -660,7 +660,48 @@ class _PithShellState extends State<PithShell>
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
+  DeckSummary get _deckSummary {
+    final total = _birthdayContacts.length;
+    final avatars = _birthdayContacts
+        .take(3)
+        .map((contact) => contact.initials)
+        .toList();
+
+    if (total > 3) {
+      avatars.add('+${total - 3}');
+    }
+
+    return DeckSummary(
+      totalBirthdays: total,
+      title: '$total Birthdays\ntoday',
+      subtitle: total == 0
+          ? 'Your network starts empty. Add your first contact.'
+          : 'A significant moment in your network. Send a note.',
+      avatars: avatars,
+    );
+  }
+
+  List<PulseItem> get _pulseItems {
+    final items = <PulseItem>[];
+    for (final contact in _birthdayContacts.take(3)) {
+      items.add(
+        PulseItem(
+          name: contact.name,
+          meta: contact.relation,
+          detail: contact.subtitle,
+          initials: contact.initials,
+          tint: contact.accent,
+        ),
+      );
+    }
+    return items;
+  }
+
   ContactProfile _resolveProfileForSpark(String value) {
+    if (_profiles.isEmpty) {
+      return _emptyProfile;
+    }
+
     final match = RegExp(r'^@([^:]+):').firstMatch(value.trim());
     if (match == null) {
       return _activeProfile;
@@ -860,6 +901,13 @@ class _PithShellState extends State<PithShell>
   }
 
   void _submitSpark(String value) {
+    if (_profiles.isEmpty) {
+      setState(() {
+        _sparkFeedback = 'No hay contactos aun. Crea uno desde Stacks con el boton +.';
+      });
+      return;
+    }
+
     final targetProfile = _resolveProfileForSpark(value);
     final parsed = QuickSparkParser.parse(input: value, profile: targetProfile);
     if (parsed == null) {
@@ -896,10 +944,12 @@ class _PithShellState extends State<PithShell>
   Widget build(BuildContext context) {
     final screens = [
       HomeDashboardScreen(
-        deck: _deck,
-        pulses: _pulses,
+        deck: _deckSummary,
+        pulses: _pulseItems,
         onOpenBirthdays: _openBirthdayStack,
         onOpenSearch: _openSearch,
+        hasContacts: _profiles.isNotEmpty,
+        onAddFirstContact: _onAddContact,
         onOpenAccount: _openAccountSheet,
         onSubmitSpark: _submitSpark,
         sparkFeedback: _sparkFeedback,
@@ -956,6 +1006,7 @@ class _PithShellState extends State<PithShell>
                 child: BirthdayFanOutOverlay(
                   controller: _fanOutController,
                   contacts: _birthdayContacts.take(5).toList(),
+                  totalBirthdays: _birthdayContacts.length,
                 ),
               ),
             ),

@@ -84,7 +84,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                               ),
                               Expanded(
                                 child: Text(
-                                  '60 Birthdays Today',
+                                  '${widget.contacts.length} Birthdays Today',
                                   textAlign: TextAlign.center,
                                   style: textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
@@ -141,6 +141,36 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
+                    if (filteredContacts.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'No contacts in this group yet',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap + to create a contact and it will sync to your account.',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF9AA8C0),
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -216,10 +246,12 @@ class BirthdayFanOutOverlay extends StatelessWidget {
     super.key,
     required this.controller,
     required this.contacts,
+    required this.totalBirthdays,
   });
 
   final Animation<double> controller;
   final List<BirthdayContact> contacts;
+  final int totalBirthdays;
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +318,7 @@ class BirthdayFanOutOverlay extends StatelessWidget {
                         scale: 1 - (0.08 * curve),
                         child: Opacity(
                           opacity: (1.2 - controller.value * 1.35).clamp(0.0, 1.0),
-                          child: const _DeckFanCoreCard(),
+                          child: _DeckFanCoreCard(totalBirthdays: totalBirthdays),
                         ),
                       ),
                     ],
@@ -302,7 +334,9 @@ class BirthdayFanOutOverlay extends StatelessWidget {
 }
 
 class _DeckFanCoreCard extends StatelessWidget {
-  const _DeckFanCoreCard();
+  const _DeckFanCoreCard({required this.totalBirthdays});
+
+  final int totalBirthdays;
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +368,7 @@ class _DeckFanCoreCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '60 Birthdays\ntoday',
+            '$totalBirthdays Birthdays\ntoday',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
               color: const Color(0xFFF4EBD0),
               fontWeight: FontWeight.w800,

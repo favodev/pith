@@ -11,6 +11,8 @@ class HomeDashboardScreen extends StatelessWidget {
     required this.onOpenBirthdays,
     required this.onOpenSearch,
     required this.onSubmitSpark,
+    required this.hasContacts,
+    this.onAddFirstContact,
     this.onOpenAccount,
     this.sparkFeedback,
   });
@@ -20,6 +22,8 @@ class HomeDashboardScreen extends StatelessWidget {
   final VoidCallback onOpenBirthdays;
   final VoidCallback onOpenSearch;
   final ValueChanged<String> onSubmitSpark;
+  final bool hasContacts;
+  final VoidCallback? onAddFirstContact;
   final VoidCallback? onOpenAccount;
   final String? sparkFeedback;
 
@@ -52,16 +56,20 @@ class HomeDashboardScreen extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text(
-                      'View all',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFF4C025),
-                        fontWeight: FontWeight.w700,
+                    if (hasContacts)
+                      Text(
+                        'View all',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFF4C025),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
+                if (!hasContacts)
+                  _EmptyHomeState(onAddFirstContact: onAddFirstContact)
+                else
                 for (final pulse in pulses) ...[
                   _PulseCard(item: pulse),
                   const SizedBox(height: 16),
@@ -439,6 +447,49 @@ class _ShortcutRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _EmptyHomeState extends StatelessWidget {
+  const _EmptyHomeState({required this.onAddFirstContact});
+
+  final VoidCallback? onAddFirstContact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131D2B).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your account is ready',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add your first contact from Stacks and Pith will begin building your private memory graph.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF9AA8C0),
+                  height: 1.35,
+                ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.tonalIcon(
+            onPressed: onAddFirstContact,
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            label: const Text('Add first contact'),
+          ),
+        ],
+      ),
     );
   }
 }

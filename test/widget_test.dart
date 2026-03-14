@@ -9,8 +9,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Pith'), findsOneWidget);
-    expect(find.text('60 Birthdays\ntoday'), findsOneWidget);
-    expect(find.text('Sarah Jenkins'), findsOneWidget);
+    expect(find.text('6 Birthdays\ntoday'), findsOneWidget);
+    expect(find.text('Eleanor Thorne'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
 
     await tester.scrollUntilVisible(
@@ -28,10 +28,10 @@ void main() {
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 900));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('60 Birthdays\ntoday'));
+    await tester.tap(find.text('6 Birthdays\ntoday'));
     await tester.pumpAndSettle();
 
-    expect(find.text('60 Birthdays Today'), findsOneWidget);
+    expect(find.text('6 Birthdays Today'), findsOneWidget);
     expect(find.text('PRIORITY WISHES'), findsOneWidget);
     expect(find.text('Eleanor Thorne'), findsOneWidget);
 
@@ -55,12 +55,12 @@ void main() {
     await tester.tap(find.text('BACK TO NETWORK'));
     await tester.pumpAndSettle();
 
-    expect(find.text('60 Birthdays Today'), findsOneWidget);
+    expect(find.text('6 Birthdays Today'), findsOneWidget);
 
     await tester.tap(find.text('Stacks'));
     await tester.pumpAndSettle();
 
-    expect(find.text('60 Birthdays Today'), findsOneWidget);
+    expect(find.text('6 Birthdays Today'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.search_rounded).first);
     await tester.pumpAndSettle();
@@ -90,7 +90,7 @@ void main() {
     await tester.tap(find.text('BACK TO NETWORK'));
     await tester.pumpAndSettle();
 
-    expect(find.text('60 Birthdays Today'), findsOneWidget);
+    expect(find.text('6 Birthdays Today'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
