@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -12,6 +13,7 @@ import 'features/search/power_search_screen.dart';
 import 'features/sparks/quick_spark_parser.dart';
 import 'features/success/note_success_screen.dart';
 import 'features/shared/common_widgets.dart';
+import 'core/supabase/supabase_sync_service.dart';
 
 class PithApp extends StatelessWidget {
   const PithApp({super.key});
@@ -335,6 +337,36 @@ class _PithShellState extends State<PithShell>
       vsync: this,
       duration: const Duration(milliseconds: 820),
     );
+
+    unawaited(_hydrateProfilesFromSupabase());
+  }
+
+  Future<void> _hydrateProfilesFromSupabase() async {
+    if (!SupabaseSyncService.instance.isEnabled) {
+      return;
+    }
+
+    try {
+      final synced = await SupabaseSyncService.instance.loadSparksForContacts(
+        _profiles.keys.toSet(),
+      );
+
+      if (!mounted || synced.isEmpty) {
+        return;
+      }
+
+      setState(() {
+        for (final entry in synced.entries) {
+          final profile = _profiles[entry.key];
+          if (profile == null || entry.value.isEmpty) {
+            continue;
+          }
+          _profiles[entry.key] = profile.copyWith(sparks: entry.value);
+        }
+      });
+    } catch (_) {
+      // Keep local fallback if sync fails.
+    }
   }
 
   @override
@@ -504,7 +536,15 @@ class _PithShellState extends State<PithShell>
       _sparkFeedback = addedLabels.isEmpty
           ? 'Spark guardado en ${targetProfile.name}.'
           : 'Spark guardado en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')}';
+
+      if (SupabaseSyncService.instance.isEnabled) {
+        _sparkFeedback = '${_sparkFeedback!} • Sync Supabase OK';
+      }
     });
+
+    SupabaseSyncService.instance
+        .saveSpark(profile: targetProfile, spark: parsed.spark)
+        .catchError((_) {});
   }
 
   @override

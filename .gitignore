@@ -44,5 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Local secrets (never commit)
+supabase.local.json
+.env
+.env.*
+
 # Ignore docs folder
 docs/
