@@ -35,6 +35,24 @@ class SupabaseContactRecord {
   final List<SupabaseSparkRecord> sparks;
 }
 
+class CreateContactPayload {
+  const CreateContactPayload({
+    required this.fullName,
+    required this.circleName,
+    required this.circlePriority,
+    required this.circleColorHex,
+    required this.locationName,
+    this.birthday,
+  });
+
+  final String fullName;
+  final String circleName;
+  final int circlePriority;
+  final String circleColorHex;
+  final String locationName;
+  final DateTime? birthday;
+}
+
 class SupabaseSyncService {
   SupabaseSyncService._();
 
@@ -169,6 +187,70 @@ class SupabaseSyncService {
     return result;
   }
 
+  Future<SupabaseContactRecord?> createOrUpdateContact(
+    CreateContactPayload payload,
+  ) async {
+    if (!isEnabled) {
+      return null;
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return null;
+    }
+
+    final circleId = await _ensureCircleId(
+      userId: userId,
+      name: payload.circleName,
+      priorityLevel: payload.circlePriority,
+      colorHex: payload.circleColorHex,
+    );
+
+    if (circleId == null) {
+      return null;
+    }
+
+    final birthdayIso = payload.birthday == null
+        ? null
+        : '${payload.birthday!.year.toString().padLeft(4, '0')}-'
+            '${payload.birthday!.month.toString().padLeft(2, '0')}-'
+            '${payload.birthday!.day.toString().padLeft(2, '0')}';
+
+    final row = await _client
+        .from('contacts')
+        .upsert({
+          'user_id': userId,
+          'circle_id': circleId,
+          'full_name': payload.fullName,
+          'birthday': birthdayIso,
+          'location_name': payload.locationName,
+        }, onConflict: 'user_id,full_name')
+        .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+        .single();
+
+    final id = row['id'] as String?;
+    final fullName = row['full_name'] as String?;
+    if (id == null || fullName == null) {
+      return null;
+    }
+
+    final birthdayRaw = row['birthday'] as String?;
+    final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
+    final locationName = (row['location_name'] as String?)?.trim() ?? '';
+    final circle = _extractCircleRow(row['circle']);
+
+    return SupabaseContactRecord(
+      id: id,
+      fullName: fullName,
+      locationName: locationName,
+      birthday: birthday,
+      circleName: (circle?['name'] as String?)?.trim() ?? payload.circleName,
+      circlePriority: (circle?['priority_level'] as int?) ?? payload.circlePriority,
+      circleColorHex: (circle?['color_hex'] as String?)?.trim() ?? payload.circleColorHex,
+      sparks: const [],
+    );
+  }
+
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
     Set<String> contactNames,
   ) async {
@@ -276,6 +358,37 @@ class SupabaseSyncService {
 
     _defaultCircleId = inserted['id'] as String;
     return _defaultCircleId;
+  }
+
+  Future<String?> _ensureCircleId({
+    required String userId,
+    required String name,
+    required int priorityLevel,
+    required String colorHex,
+  }) async {
+    final existing = await _client
+        .from('circles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', name)
+        .limit(1);
+
+    if (existing.isNotEmpty) {
+      return existing.first['id'] as String;
+    }
+
+    final inserted = await _client
+        .from('circles')
+        .insert({
+          'user_id': userId,
+          'name': name,
+          'priority_level': priorityLevel,
+          'color_hex': colorHex,
+        })
+        .select('id')
+        .single();
+
+    return inserted['id'] as String;
   }
 
   Future<String?> _ensureContactId({

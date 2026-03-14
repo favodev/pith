@@ -10,12 +10,14 @@ class BirthdayStackScreen extends StatefulWidget {
     required this.onBack,
     required this.onOpenSearch,
     required this.onSendNote,
+    required this.onAddContact,
   });
 
   final List<BirthdayContact> contacts;
   final VoidCallback onBack;
   final VoidCallback onOpenSearch;
   final ValueChanged<BirthdayContact> onSendNote;
+  final VoidCallback onAddContact;
 
   @override
   State<BirthdayStackScreen> createState() => _BirthdayStackScreenState();
@@ -184,21 +186,24 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
         Positioned(
           right: 24,
           bottom: 112,
-          child: Container(
-            width: 62,
-            height: 62,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFF4C025),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x44F4C025),
-                  blurRadius: 22,
-                  offset: Offset(0, 8),
-                ),
-              ],
+          child: GestureDetector(
+            onTap: widget.onAddContact,
+            child: Container(
+              width: 62,
+              height: 62,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFF4C025),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x44F4C025),
+                    blurRadius: 22,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.add_rounded, color: Color(0xFF101010), size: 32),
             ),
-            child: const Icon(Icons.add_rounded, color: Color(0xFF101010), size: 32),
           ),
         ),
       ],

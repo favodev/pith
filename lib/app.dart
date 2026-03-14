@@ -9,6 +9,7 @@ import 'core/supabase/supabase_bootstrap.dart';
 import 'core/theme/pith_theme.dart';
 import 'features/auth/auth_screen.dart';
 import 'features/birthdays/birthday_stack_screen.dart';
+import 'features/contacts/create_contact_sheet.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/profile/profile_canvas_screen.dart';
 import 'features/radar/relationship_radar_screen.dart';
@@ -795,6 +796,69 @@ class _PithShellState extends State<PithShell>
     );
   }
 
+  Future<void> _onAddContact() async {
+    final input = await showCreateContactSheet(context);
+    if (!mounted || input == null) {
+      return;
+    }
+
+    final mapping = _circleMapping(input.circleName);
+    SupabaseContactRecord? remote;
+    if (SupabaseSyncService.instance.isEnabled) {
+      try {
+        remote = await SupabaseSyncService.instance.createOrUpdateContact(
+          CreateContactPayload(
+            fullName: input.fullName,
+            circleName: input.circleName,
+            circlePriority: mapping.priority,
+            circleColorHex: mapping.colorHex,
+            locationName: input.locationName,
+            birthday: input.birthday,
+          ),
+        );
+      } catch (_) {
+        remote = null;
+      }
+    }
+
+    final record = remote ??
+        SupabaseContactRecord(
+          id: input.fullName,
+          fullName: input.fullName,
+          locationName: input.locationName,
+          birthday: input.birthday,
+          circleName: input.circleName,
+          circlePriority: mapping.priority,
+          circleColorHex: mapping.colorHex,
+          sparks: const [],
+        );
+
+    final profile = _profileFromRemoteContact(record);
+    final birthday = _birthdayFromRemoteContact(record);
+    final search = _searchFromRemoteContact(record);
+
+    setState(() {
+      _profiles[profile.name] = profile;
+      _birthdayContacts = [birthday, ..._birthdayContacts.where((item) => item.name != birthday.name)];
+      _searchContacts = [search, ..._searchContacts.where((item) => item.name != search.name)];
+      _activeProfileName = profile.name;
+      _profileReturnIndex = _currentIndex;
+      _currentIndex = 3;
+      _sparkFeedback = SupabaseSyncService.instance.isEnabled
+          ? 'Contacto guardado en Supabase: ${profile.name}'
+          : 'Contacto creado en local: ${profile.name}';
+    });
+  }
+
+  _CircleMapping _circleMapping(String circle) {
+    return switch (circle) {
+      'VIP' => const _CircleMapping(priority: 1, colorHex: '#F4C025'),
+      'Family' => const _CircleMapping(priority: 1, colorHex: '#DEB06D'),
+      'Inner Circle' => const _CircleMapping(priority: 2, colorHex: '#7F6688'),
+      _ => const _CircleMapping(priority: 3, colorHex: '#6E7789'),
+    };
+  }
+
   void _submitSpark(String value) {
     final targetProfile = _resolveProfileForSpark(value);
     final parsed = QuickSparkParser.parse(input: value, profile: targetProfile);
@@ -845,6 +909,7 @@ class _PithShellState extends State<PithShell>
         onBack: () => setState(() => _currentIndex = 0),
         onOpenSearch: _openSearch,
         onSendNote: _sendBirthdayNote,
+        onAddContact: _onAddContact,
       ),
       const RelationshipRadarScreen(
         stories: _radarStories,
@@ -951,4 +1016,11 @@ class _PithShellState extends State<PithShell>
             ),
     );
   }
+}
+
+class _CircleMapping {
+  const _CircleMapping({required this.priority, required this.colorHex});
+
+  final int priority;
+  final String colorHex;
 }
