@@ -14,7 +14,44 @@ class CreateContactInput {
   final DateTime? birthday;
 }
 
+class ContactFormInitialData {
+  const ContactFormInitialData({
+    required this.fullName,
+    required this.circleName,
+    required this.locationName,
+    required this.birthday,
+  });
+
+  final String fullName;
+  final String circleName;
+  final String locationName;
+  final DateTime? birthday;
+}
+
 Future<CreateContactInput?> showCreateContactSheet(BuildContext context) {
+  return showContactFormSheet(context);
+}
+
+Future<CreateContactInput?> showEditContactSheet(
+  BuildContext context, {
+  required ContactFormInitialData initial,
+}) {
+  return showContactFormSheet(
+    context,
+    title: 'Editar contacto',
+    subtitle: 'Actualiza este contacto y sincronizalo con tu cuenta.',
+    submitLabel: 'Guardar cambios',
+    initial: initial,
+  );
+}
+
+Future<CreateContactInput?> showContactFormSheet(
+  BuildContext context, {
+  String title = 'Nuevo contacto',
+  String subtitle = 'Guarda un contacto y sincronizalo con tu cuenta.',
+  String submitLabel = 'Guardar contacto',
+  ContactFormInitialData? initial,
+}) {
   return showModalBottomSheet<CreateContactInput>(
     context: context,
     isScrollControlled: true,
@@ -22,12 +59,27 @@ Future<CreateContactInput?> showCreateContactSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
-    builder: (context) => const _CreateContactSheetBody(),
+    builder: (context) => _CreateContactSheetBody(
+      title: title,
+      subtitle: subtitle,
+      submitLabel: submitLabel,
+      initial: initial,
+    ),
   );
 }
 
 class _CreateContactSheetBody extends StatefulWidget {
-  const _CreateContactSheetBody();
+  const _CreateContactSheetBody({
+    required this.title,
+    required this.subtitle,
+    required this.submitLabel,
+    this.initial,
+  });
+
+  final String title;
+  final String subtitle;
+  final String submitLabel;
+  final ContactFormInitialData? initial;
 
   @override
   State<_CreateContactSheetBody> createState() => _CreateContactSheetBodyState();
@@ -39,6 +91,18 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
 
   String _selectedCircle = 'VIP';
   DateTime? _birthday;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial != null) {
+      _nameController.text = initial.fullName;
+      _locationController.text = initial.locationName;
+      _selectedCircle = initial.circleName;
+      _birthday = initial.birthday;
+    }
+  }
 
   @override
   void dispose() {
@@ -91,14 +155,14 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nuevo contacto',
+              widget.title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
             ),
             const SizedBox(height: 6),
             Text(
-              'Guarda un contacto y sincronizalo con tu cuenta.',
+              widget.subtitle,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF9AA8C0),
                   ),
@@ -178,7 +242,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                   backgroundColor: const Color(0xFFF4C025),
                   foregroundColor: const Color(0xFF17130A),
                 ),
-                child: const Text('Guardar contacto'),
+                child: Text(widget.submitLabel),
               ),
             ),
           ],

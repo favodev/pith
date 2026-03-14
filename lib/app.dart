@@ -73,6 +73,7 @@ class _PithShellState extends State<PithShell>
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   late Map<String, ContactProfile> _profiles;
+  late Map<String, SupabaseContactRecord> _remoteContactsByName;
   late List<BirthdayContact> _birthdayContacts;
   late List<SearchContact> _searchContacts;
   String _activeProfileName = '';
@@ -113,6 +114,7 @@ class _PithShellState extends State<PithShell>
   void initState() {
     super.initState();
     _profiles = {};
+    _remoteContactsByName = {};
     _birthdayContacts = [];
     _searchContacts = [];
     _activeProfileName = '';
@@ -137,6 +139,9 @@ class _PithShellState extends State<PithShell>
       }
 
       setState(() {
+        _remoteContactsByName = {
+          for (final contact in contacts) contact.fullName: contact,
+        };
         _profiles = {
           for (final contact in contacts) contact.fullName: _profileFromRemoteContact(contact),
         };
@@ -224,27 +229,6 @@ class _PithShellState extends State<PithShell>
           ),
         ],
       );
-
-  ContactProfile _profileForContact(BirthdayContact contact) {
-    return _profiles[contact.name] ??
-        ContactProfile(
-          name: contact.name,
-          subtitle: '${contact.relation.toUpperCase()} — ${contact.subtitle.toUpperCase()}',
-          initials: contact.initials,
-          interests: const [
-            ProfileInterest(label: 'Thoughtful Gifts', icon: Icons.card_giftcard_rounded),
-            ProfileInterest(label: 'Warm Follow-ups', icon: Icons.favorite_border_rounded),
-            ProfileInterest(label: 'Shared Moments', icon: Icons.auto_awesome_rounded),
-          ],
-          sparks: const [
-            QuickSparkEntry(
-              dateLabel: 'TODAY',
-              content: 'Profile created from the birthday stack flow to continue the conversation.',
-              highlighted: true,
-            ),
-          ],
-        );
-  }
 
   ContactProfile _profileFromRemoteContact(SupabaseContactRecord contact) {
     final subtitle = contact.locationName.isEmpty
@@ -496,8 +480,15 @@ class _PithShellState extends State<PithShell>
   }
 
   void _sendBirthdayNote(BirthdayContact contact) {
+    final targetProfile = _profiles[contact.name];
+    if (targetProfile == null) {
+      setState(() {
+        _sparkFeedback = 'No se encontro el perfil del contacto. Recarga e intenta nuevamente.';
+      });
+      return;
+    }
+
     setState(() {
-      _profiles[contact.name] = _profileForContact(contact);
       _noteReceipt = NoteDeliveryReceipt(
         recipientName: contact.name,
         recipientLabel: 'CONTACT',
@@ -506,6 +497,16 @@ class _PithShellState extends State<PithShell>
         accent: const Color(0xFFF4C025),
       );
     });
+
+    final birthdaySpark = QuickSparkParseResult(
+      spark: QuickSparkEntry(
+        dateLabel: _formatDate(DateTime.now()),
+        content: 'Birthday note saved.',
+        highlighted: true,
+      ),
+      inferredInterests: const [],
+    );
+    unawaited(_saveSparkToSupabase(targetProfile: targetProfile, parsed: birthdaySpark));
   }
 
   void _closeNoteSuccess() {
@@ -647,11 +648,14 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
-    final profile = _profileFromRemoteContact(record);
-    final birthday = _birthdayFromRemoteContact(record);
-    final search = _searchFromRemoteContact(record);
+    final savedRecord = record;
+
+    final profile = _profileFromRemoteContact(savedRecord);
+    final birthday = _birthdayFromRemoteContact(savedRecord);
+    final search = _searchFromRemoteContact(savedRecord);
 
     setState(() {
+      _remoteContactsByName[savedRecord.fullName] = savedRecord;
       _profiles[profile.name] = profile;
       _birthdayContacts = [birthday, ..._birthdayContacts.where((item) => item.name != birthday.name)];
       _searchContacts = [search, ..._searchContacts.where((item) => item.name != search.name)];
@@ -711,7 +715,19 @@ class _PithShellState extends State<PithShell>
                   child: FilledButton.tonalIcon(
                     onPressed: () async {
                       Navigator.of(context).pop();
-                      await _deleteContact(profileName);
+                      await _editContact(profileName);
+                    },
+                    icon: const Icon(Icons.edit_rounded),
+                    label: const Text('Edit contact'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await _confirmAndDeleteContact(profileName);
                     },
                     icon: const Icon(Icons.delete_outline_rounded),
                     label: const Text('Delete contact'),
@@ -723,6 +739,108 @@ class _PithShellState extends State<PithShell>
         );
       },
     );
+  }
+
+  Future<void> _editContact(String oldName) async {
+    final existing = _remoteContactsByName[oldName];
+    if (existing == null) {
+      setState(() {
+        _sparkFeedback = 'No se encontro el contacto para editar. Recarga la app e intenta de nuevo.';
+      });
+      return;
+    }
+
+    final input = await showEditContactSheet(
+      context,
+      initial: ContactFormInitialData(
+        fullName: existing.fullName,
+        circleName: existing.circleName,
+        locationName: existing.locationName,
+        birthday: existing.birthday,
+      ),
+    );
+
+    if (!mounted || input == null) {
+      return;
+    }
+
+    final mapping = _circleMapping(input.circleName);
+
+    SupabaseContactRecord? updated;
+    try {
+      updated = await SupabaseSyncService.instance.updateContactById(
+        contactId: existing.id,
+        payload: CreateContactPayload(
+          fullName: input.fullName,
+          circleName: input.circleName,
+          circlePriority: mapping.priority,
+          circleColorHex: mapping.colorHex,
+          locationName: input.locationName,
+          birthday: input.birthday,
+        ),
+      );
+    } catch (_) {
+      updated = null;
+    }
+
+    if (!mounted || updated == null) {
+      setState(() {
+        _sparkFeedback = 'No se pudo actualizar en Supabase. Verifica datos e intenta nuevamente.';
+      });
+      return;
+    }
+
+    final updatedRecord = updated;
+
+    final profile = _profileFromRemoteContact(updatedRecord);
+    final birthday = _birthdayFromRemoteContact(updatedRecord);
+    final search = _searchFromRemoteContact(updatedRecord);
+
+    setState(() {
+      _remoteContactsByName.remove(oldName);
+      _remoteContactsByName[updatedRecord.fullName] = updatedRecord;
+
+      _profiles.remove(oldName);
+      _profiles[profile.name] = profile;
+
+      _birthdayContacts = [
+        birthday,
+        ..._birthdayContacts.where((item) => item.name != oldName && item.name != birthday.name),
+      ];
+      _searchContacts = [
+        search,
+        ..._searchContacts.where((item) => item.name != oldName && item.name != search.name),
+      ];
+
+      _activeProfileName = profile.name;
+      _sparkFeedback = 'Contacto actualizado en Supabase: ${profile.name}';
+    });
+  }
+
+  Future<void> _confirmAndDeleteContact(String name) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete contact?'),
+          content: Text('This will permanently remove $name and its sparks from Supabase.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete == true) {
+      await _deleteContact(name);
+    }
   }
 
   Future<void> _deleteContact(String name) async {
@@ -743,6 +861,7 @@ class _PithShellState extends State<PithShell>
     }
 
     setState(() {
+      _remoteContactsByName.remove(name);
       _profiles.remove(name);
       _birthdayContacts = _birthdayContacts.where((item) => item.name != name).toList();
       _searchContacts = _searchContacts.where((item) => item.name != name).toList();

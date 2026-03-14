@@ -251,6 +251,72 @@ class SupabaseSyncService {
     );
   }
 
+  Future<SupabaseContactRecord?> updateContactById({
+    required String contactId,
+    required CreateContactPayload payload,
+  }) async {
+    if (!isEnabled) {
+      return null;
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return null;
+    }
+
+    final circleId = await _ensureCircleId(
+      userId: userId,
+      name: payload.circleName,
+      priorityLevel: payload.circlePriority,
+      colorHex: payload.circleColorHex,
+    );
+
+    if (circleId == null) {
+      return null;
+    }
+
+    final birthdayIso = payload.birthday == null
+        ? null
+        : '${payload.birthday!.year.toString().padLeft(4, '0')}-'
+            '${payload.birthday!.month.toString().padLeft(2, '0')}-'
+            '${payload.birthday!.day.toString().padLeft(2, '0')}';
+
+    final row = await _client
+        .from('contacts')
+        .update({
+          'circle_id': circleId,
+          'full_name': payload.fullName,
+          'birthday': birthdayIso,
+          'location_name': payload.locationName,
+        })
+        .eq('id', contactId)
+        .eq('user_id', userId)
+        .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+        .single();
+
+    final id = row['id'] as String?;
+    final fullName = row['full_name'] as String?;
+    if (id == null || fullName == null) {
+      return null;
+    }
+
+    final birthdayRaw = row['birthday'] as String?;
+    final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
+    final locationName = (row['location_name'] as String?)?.trim() ?? '';
+    final circle = _extractCircleRow(row['circle']);
+
+    return SupabaseContactRecord(
+      id: id,
+      fullName: fullName,
+      locationName: locationName,
+      birthday: birthday,
+      circleName: (circle?['name'] as String?)?.trim() ?? payload.circleName,
+      circlePriority: (circle?['priority_level'] as int?) ?? payload.circlePriority,
+      circleColorHex: (circle?['color_hex'] as String?)?.trim() ?? payload.circleColorHex,
+      sparks: const [],
+    );
+  }
+
   Future<void> deleteContactByName(String fullName) async {
     if (!isEnabled) {
       throw StateError('Supabase is not configured.');
