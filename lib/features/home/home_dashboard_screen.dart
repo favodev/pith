@@ -11,6 +11,7 @@ class HomeDashboardScreen extends StatelessWidget {
     required this.onOpenBirthdays,
     required this.onOpenSearch,
     required this.onSubmitSpark,
+    this.onOpenAccount,
     this.sparkFeedback,
   });
 
@@ -19,6 +20,7 @@ class HomeDashboardScreen extends StatelessWidget {
   final VoidCallback onOpenBirthdays;
   final VoidCallback onOpenSearch;
   final ValueChanged<String> onSubmitSpark;
+  final VoidCallback? onOpenAccount;
   final String? sparkFeedback;
 
   @override
@@ -32,7 +34,10 @@ class HomeDashboardScreen extends StatelessWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate(
               [
-                _HeaderBar(onOpenSearch: onOpenSearch),
+                _HeaderBar(
+                  onOpenSearch: onOpenSearch,
+                  onOpenAccount: onOpenAccount,
+                ),
                 const SizedBox(height: 24),
                 _DeckCard(deck: deck, onTap: onOpenBirthdays),
                 const SizedBox(height: 34),
@@ -86,9 +91,13 @@ class HomeDashboardScreen extends StatelessWidget {
 }
 
 class _HeaderBar extends StatelessWidget {
-  const _HeaderBar({required this.onOpenSearch});
+  const _HeaderBar({
+    required this.onOpenSearch,
+    this.onOpenAccount,
+  });
 
   final VoidCallback onOpenSearch;
+  final VoidCallback? onOpenAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -106,20 +115,23 @@ class _HeaderBar extends StatelessWidget {
         const Spacer(),
         IconButtonBubble(icon: Icons.search_rounded, onTap: onOpenSearch),
         const SizedBox(width: 10),
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.35)),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF7D89A), Color(0xFFD7A46D)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+        GestureDetector(
+          onTap: onOpenAccount,
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.35)),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF7D89A), Color(0xFFD7A46D)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.person, color: Color(0xFF3B2A16), size: 20),
           ),
-          alignment: Alignment.center,
-          child: const Icon(Icons.person, color: Color(0xFF3B2A16), size: 20),
         ),
       ],
     );

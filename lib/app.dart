@@ -2,9 +2,12 @@ import 'dart:ui';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/models/pith_models.dart';
+import 'core/supabase/supabase_bootstrap.dart';
 import 'core/theme/pith_theme.dart';
+import 'features/auth/auth_screen.dart';
 import 'features/birthdays/birthday_stack_screen.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/profile/profile_canvas_screen.dart';
@@ -24,7 +27,29 @@ class PithApp extends StatelessWidget {
       title: 'Pith',
       debugShowCheckedModeBanner: false,
       theme: buildPithTheme(),
-      home: const PithShell(),
+      home: SupabaseBootstrap.isConfigured ? const _AuthGate() : const PithShell(),
+    );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Supabase.instance.client.auth;
+
+    return StreamBuilder<AuthState>(
+      stream: auth.onAuthStateChange,
+      initialData: AuthState(AuthChangeEvent.initialSession, auth.currentSession),
+      builder: (context, snapshot) {
+        final session = snapshot.data?.session ?? auth.currentSession;
+        if (session == null) {
+          return const AuthScreen();
+        }
+
+        return const PithShell();
+      },
     );
   }
 }
@@ -44,6 +69,8 @@ class _PithShellState extends State<PithShell>
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   late Map<String, ContactProfile> _profiles;
+  late List<BirthdayContact> _birthdayContacts;
+  late List<SearchContact> _searchContacts;
   String _activeProfileName = 'Julian Vane';
   int _profileReturnIndex = 0;
   late final AnimationController _fanOutController;
@@ -79,7 +106,7 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
-  static const _birthdayContacts = [
+  static const _defaultBirthdayContacts = [
     BirthdayContact(
       name: 'Eleanor Thorne',
       relation: 'Mom',
@@ -144,7 +171,7 @@ class _PithShellState extends State<PithShell>
     ),
   ];
 
-  static const _searchContacts = [
+  static const _defaultSearchContacts = [
     SearchContact(
       name: 'Raphael Vance',
       description: 'Interested in 90s East Coast Rap',
@@ -333,35 +360,41 @@ class _PithShellState extends State<PithShell>
       _initialSarahProfile.name: _initialSarahProfile,
       _initialJulianRProfile.name: _initialJulianRProfile,
     };
+    _birthdayContacts = List<BirthdayContact>.from(_defaultBirthdayContacts);
+    _searchContacts = List<SearchContact>.from(_defaultSearchContacts);
     _fanOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 820),
     );
 
-    unawaited(_hydrateProfilesFromSupabase());
+    unawaited(_hydrateFromSupabase());
   }
 
-  Future<void> _hydrateProfilesFromSupabase() async {
+  Future<void> _hydrateFromSupabase() async {
     if (!SupabaseSyncService.instance.isEnabled) {
       return;
     }
 
     try {
-      final synced = await SupabaseSyncService.instance.loadSparksForContacts(
-        _profiles.keys.toSet(),
-      );
+      final contacts = await SupabaseSyncService.instance.loadContactsWithSparks();
 
-      if (!mounted || synced.isEmpty) {
+      if (!mounted || contacts.isEmpty) {
         return;
       }
 
       setState(() {
-        for (final entry in synced.entries) {
-          final profile = _profiles[entry.key];
-          if (profile == null || entry.value.isEmpty) {
-            continue;
-          }
-          _profiles[entry.key] = profile.copyWith(sparks: entry.value);
+        _profiles = {
+          for (final contact in contacts) contact.fullName: _profileFromRemoteContact(contact),
+        };
+        _birthdayContacts = [
+          for (final contact in contacts) _birthdayFromRemoteContact(contact),
+        ];
+        _searchContacts = [
+          for (final contact in contacts) _searchFromRemoteContact(contact),
+        ];
+
+        if (_profiles.isNotEmpty && !_profiles.containsKey(_activeProfileName)) {
+          _activeProfileName = _profiles.keys.first;
         }
       });
     } catch (_) {
@@ -434,6 +467,196 @@ class _PithShellState extends State<PithShell>
             ),
           ],
         );
+  }
+
+  ContactProfile _profileFromRemoteContact(SupabaseContactRecord contact) {
+    final subtitle = contact.locationName.isEmpty
+        ? '${contact.circleName.toUpperCase()} — CONTACT'
+        : '${contact.locationName.toUpperCase()} — ${contact.circleName.toUpperCase()}';
+
+    return ContactProfile(
+      name: contact.fullName,
+      subtitle: subtitle,
+      initials: _initialsFromName(contact.fullName),
+      interests: _inferInterestsFromRemoteSparks(contact.sparks),
+      sparks: _sparksFromRemote(contact.sparks),
+    );
+  }
+
+  BirthdayContact _birthdayFromRemoteContact(SupabaseContactRecord contact) {
+    final group = _groupFromRemoteCircle(contact.circleName, contact.circlePriority);
+
+    return BirthdayContact(
+      name: contact.fullName,
+      relation: contact.circleName,
+      subtitle: _birthdaySubtitle(contact.birthday),
+      initials: _initialsFromName(contact.fullName),
+      accent: _colorFromHex(contact.circleColorHex),
+      priority: contact.circlePriority <= 1 ? BirthdayPriority.vip : BirthdayPriority.standard,
+      group: group,
+      heightFactor: 0.92 + ((contact.fullName.length % 5) * 0.1),
+      actionIcon: contact.circlePriority <= 2 ? Icons.card_giftcard_rounded : Icons.auto_awesome_rounded,
+    );
+  }
+
+  SearchContact _searchFromRemoteContact(SupabaseContactRecord contact) {
+    final previewSpark = contact.sparks.isEmpty ? '' : contact.sparks.first.content;
+    final description = previewSpark.isEmpty
+        ? 'Circle: ${contact.circleName}'
+        : previewSpark.length > 46
+            ? '${previewSpark.substring(0, 46)}...'
+            : previewSpark;
+
+    return SearchContact(
+      name: contact.fullName,
+      description: description,
+      initials: _initialsFromName(contact.fullName),
+      statusColor: contact.circlePriority <= 1
+          ? const Color(0xFF21C45D)
+          : const Color(0xFF95A3B9),
+      highlighted: contact.circlePriority <= 2,
+    );
+  }
+
+  List<ProfileInterest> _inferInterestsFromRemoteSparks(List<SupabaseSparkRecord> sparks) {
+    final labels = <String>[];
+    for (final spark in sparks) {
+      final content = spark.content.toLowerCase();
+      if (content.contains('rap') || content.contains('music') || content.contains('vinyl')) {
+        labels.add('Music Tastes');
+      }
+      if (content.contains('coffee') || content.contains('cafe') || content.contains('espresso')) {
+        labels.add('Cafe Rituals');
+      }
+      if (content.contains('gift') || content.contains('regalo')) {
+        labels.add('Gift Clues');
+      }
+      if (content.contains('travel') || content.contains('trip') || content.contains('viaje')) {
+        labels.add('Travel Plans');
+      }
+    }
+
+    final unique = labels.toSet().take(4).toList();
+    if (unique.isEmpty) {
+      return const [
+        ProfileInterest(label: 'Shared Moments', icon: Icons.auto_awesome_rounded),
+        ProfileInterest(label: 'Follow-ups', icon: Icons.favorite_border_rounded),
+      ];
+    }
+
+    return [
+      for (final label in unique)
+        ProfileInterest(
+          label: label,
+          icon: switch (label) {
+            'Music Tastes' => Icons.music_note_rounded,
+            'Cafe Rituals' => Icons.coffee_rounded,
+            'Gift Clues' => Icons.card_giftcard_rounded,
+            'Travel Plans' => Icons.flight_takeoff_rounded,
+            _ => Icons.auto_awesome_rounded,
+          },
+        ),
+    ];
+  }
+
+  List<QuickSparkEntry> _sparksFromRemote(List<SupabaseSparkRecord> sparks) {
+    if (sparks.isEmpty) {
+      return const [
+        QuickSparkEntry(
+          dateLabel: 'TODAY',
+          content: 'Ready to capture your first spark.',
+          highlighted: true,
+        ),
+      ];
+    }
+
+    return [
+      for (var index = 0; index < sparks.take(8).length; index++)
+        QuickSparkEntry(
+          dateLabel: _formatDate(sparks[index].createdAt),
+          content: sparks[index].content,
+          highlighted: index == 0,
+        ),
+    ];
+  }
+
+  String _initialsFromName(String fullName) {
+    final words = fullName
+        .split(' ')
+        .where((word) => word.trim().isNotEmpty)
+        .toList();
+    if (words.isEmpty) {
+      return 'NA';
+    }
+    if (words.length == 1) {
+      return words.first.substring(0, 1).toUpperCase();
+    }
+    return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}'.toUpperCase();
+  }
+
+  BirthdayGroup _groupFromRemoteCircle(String name, int priority) {
+    final lowered = name.toLowerCase();
+    if (lowered.contains('family')) {
+      return BirthdayGroup.family;
+    }
+    if (priority <= 2 || lowered.contains('inner') || lowered.contains('vip')) {
+      return BirthdayGroup.innerCircle;
+    }
+    return BirthdayGroup.allContacts;
+  }
+
+  String _birthdaySubtitle(DateTime? birthday) {
+    if (birthday == null) {
+      return 'No birthday yet';
+    }
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    return '${months[birthday.month - 1]} ${birthday.day}';
+  }
+
+  Color _colorFromHex(String value) {
+    final cleaned = value.replaceAll('#', '').trim();
+    if (cleaned.length != 6) {
+      return const Color(0xFF708DB4);
+    }
+
+    final parsed = int.tryParse(cleaned, radix: 16);
+    if (parsed == null) {
+      return const Color(0xFF708DB4);
+    }
+
+    return Color(0xFF000000 | parsed);
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   ContactProfile _resolveProfileForSpark(String value) {
@@ -514,6 +737,64 @@ class _PithShellState extends State<PithShell>
     });
   }
 
+  Future<void> _openAccountSheet() async {
+    if (!SupabaseSyncService.instance.isEnabled || !mounted) {
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF101A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cuenta activa',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  user.email ?? 'Usuario autenticado',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF9AA8C0),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    onPressed: () async {
+                      await Supabase.instance.client.auth.signOut();
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: const Text('Cerrar sesion'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _submitSpark(String value) {
     final targetProfile = _resolveProfileForSpark(value);
     final parsed = QuickSparkParser.parse(input: value, profile: targetProfile);
@@ -555,6 +836,7 @@ class _PithShellState extends State<PithShell>
         pulses: _pulses,
         onOpenBirthdays: _openBirthdayStack,
         onOpenSearch: _openSearch,
+        onOpenAccount: _openAccountSheet,
         onSubmitSpark: _submitSpark,
         sparkFeedback: _sparkFeedback,
       ),

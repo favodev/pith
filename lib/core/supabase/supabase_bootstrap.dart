@@ -28,11 +28,6 @@ class SupabaseBootstrap {
       authOptions: const FlutterAuthClientOptions(autoRefreshToken: true),
     );
 
-    final auth = Supabase.instance.client.auth;
-    if (auth.currentSession == null) {
-      await auth.signInAnonymously();
-    }
-
     _configured = true;
     _initialized = true;
   }

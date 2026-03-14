@@ -3,6 +3,38 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/pith_models.dart';
 import 'supabase_bootstrap.dart';
 
+class SupabaseSparkRecord {
+  const SupabaseSparkRecord({
+    required this.content,
+    required this.createdAt,
+  });
+
+  final String content;
+  final DateTime createdAt;
+}
+
+class SupabaseContactRecord {
+  const SupabaseContactRecord({
+    required this.id,
+    required this.fullName,
+    required this.locationName,
+    required this.birthday,
+    required this.circleName,
+    required this.circlePriority,
+    required this.circleColorHex,
+    required this.sparks,
+  });
+
+  final String id;
+  final String fullName;
+  final String locationName;
+  final DateTime? birthday;
+  final String circleName;
+  final int circlePriority;
+  final String circleColorHex;
+  final List<SupabaseSparkRecord> sparks;
+}
+
 class SupabaseSyncService {
   SupabaseSyncService._();
 
@@ -20,11 +52,6 @@ class SupabaseSyncService {
   }) async {
     if (!isEnabled) {
       return;
-    }
-
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      await _client.auth.signInAnonymously();
     }
 
     final userId = _client.auth.currentUser?.id;
@@ -52,6 +79,94 @@ class SupabaseSyncService {
       'content': spark.content,
       'icon_type': _inferIconType(spark.content),
     });
+  }
+
+  Future<List<SupabaseContactRecord>> loadContactsWithSparks() async {
+    if (!isEnabled) {
+      return const [];
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return const [];
+    }
+
+    final contactRows = await _client
+        .from('contacts')
+        .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    if (contactRows.isEmpty) {
+      return const [];
+    }
+
+    final contactIds = <String>[];
+    for (final row in contactRows) {
+      final id = row['id'] as String?;
+      if (id != null) {
+        contactIds.add(id);
+      }
+    }
+
+    final sparksByContact = <String, List<SupabaseSparkRecord>>{};
+    if (contactIds.isNotEmpty) {
+      final sparkRows = await _client
+          .from('sparks')
+          .select('contact_id,content,created_at')
+          .inFilter('contact_id', contactIds)
+          .order('created_at', ascending: false);
+
+      for (final row in sparkRows) {
+        final contactId = row['contact_id'] as String?;
+        final content = row['content'] as String?;
+        final createdAtRaw = row['created_at'] as String?;
+        if (contactId == null || content == null) {
+          continue;
+        }
+
+        final createdAt = createdAtRaw == null
+            ? DateTime.now()
+            : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
+
+        final list = sparksByContact.putIfAbsent(contactId, () => <SupabaseSparkRecord>[]);
+        list.add(SupabaseSparkRecord(content: content, createdAt: createdAt));
+      }
+    }
+
+    final result = <SupabaseContactRecord>[];
+    for (final row in contactRows) {
+      final id = row['id'] as String?;
+      final fullName = row['full_name'] as String?;
+      if (id == null || fullName == null) {
+        continue;
+      }
+
+      final locationName = (row['location_name'] as String?)?.trim() ?? '';
+
+      final birthdayRaw = row['birthday'] as String?;
+      final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
+
+      final circle = _extractCircleRow(row['circle']);
+      final circleName = (circle?['name'] as String?)?.trim() ?? 'All Contacts';
+      final circlePriority = (circle?['priority_level'] as int?) ?? 3;
+      final circleColorHex = (circle?['color_hex'] as String?)?.trim() ?? '#6E7789';
+
+      result.add(
+        SupabaseContactRecord(
+          id: id,
+          fullName: fullName,
+          locationName: locationName,
+          birthday: birthday,
+          circleName: circleName,
+          circlePriority: circlePriority,
+          circleColorHex: circleColorHex,
+          sparks: sparksByContact[id] ?? const [],
+        ),
+      );
+    }
+
+    return result;
   }
 
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
@@ -199,6 +314,21 @@ class SupabaseSyncService {
       return subtitle;
     }
     return subtitle.substring(0, dashIndex).trim();
+  }
+
+  Map<String, dynamic>? _extractCircleRow(dynamic circleRaw) {
+    if (circleRaw is Map<String, dynamic>) {
+      return circleRaw;
+    }
+
+    if (circleRaw is List && circleRaw.isNotEmpty) {
+      final first = circleRaw.first;
+      if (first is Map<String, dynamic>) {
+        return first;
+      }
+    }
+
+    return null;
   }
 
   String _formatDate(DateTime date) {
