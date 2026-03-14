@@ -69,12 +69,12 @@ class SupabaseSyncService {
     required QuickSparkEntry spark,
   }) async {
     if (!isEnabled) {
-      return;
+      throw StateError('Supabase is not configured.');
     }
 
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
-      return;
+      throw StateError('User session is required to save sparks.');
     }
 
     final circleId = await _ensureDefaultCircleId(userId);
@@ -249,6 +249,23 @@ class SupabaseSyncService {
       circleColorHex: (circle?['color_hex'] as String?)?.trim() ?? payload.circleColorHex,
       sparks: const [],
     );
+  }
+
+  Future<void> deleteContactByName(String fullName) async {
+    if (!isEnabled) {
+      throw StateError('Supabase is not configured.');
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw StateError('User session is required to delete contacts.');
+    }
+
+    await _client
+        .from('contacts')
+        .delete()
+        .eq('user_id', userId)
+        .eq('full_name', fullName);
   }
 
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(

@@ -9,12 +9,14 @@ class ProfileCanvasScreen extends StatelessWidget {
     required this.profile,
     required this.onSubmitSpark,
     required this.onBack,
+    this.onOpenContactActions,
     this.sparkFeedback,
   });
 
   final ContactProfile profile;
   final ValueChanged<String> onSubmitSpark;
   final VoidCallback onBack;
+  final VoidCallback? onOpenContactActions;
   final String? sparkFeedback;
 
   @override
@@ -56,11 +58,19 @@ class ProfileCanvasScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.edit_note_rounded, color: Color(0x889AA8C0)),
-                        SizedBox(width: 18),
-                        Icon(Icons.settings_rounded, color: Color(0x889AA8C0)),
+                        IconButton(
+                          onPressed: onOpenContactActions,
+                          icon: const Icon(Icons.edit_note_rounded),
+                          color: const Color(0x889AA8C0),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: onOpenContactActions,
+                          icon: const Icon(Icons.settings_rounded),
+                          color: const Color(0x889AA8C0),
+                        ),
                       ],
                     ),
                   ],
