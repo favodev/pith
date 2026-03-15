@@ -442,8 +442,9 @@ class _ShortcutRow extends StatelessWidget {
           Text(
             item,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF6E7D97),
+              color: const Color(0xFF8FA0BC),
               letterSpacing: 2.6,
+              fontWeight: FontWeight.w600,
             ),
           ),
       ],

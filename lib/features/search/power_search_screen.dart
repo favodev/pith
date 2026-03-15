@@ -190,11 +190,41 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     children: [
-                      for (final result in filtered)
-                        _SearchResultRow(
-                          contact: result,
-                          onTap: () => widget.onSelectResult(result),
-                        ),
+                      if (filtered.isEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 12, bottom: 18),
+                          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'No matches found',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Try a different keyword or add more contacts to improve search results.',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF9AA8C0),
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        for (final result in filtered)
+                          _SearchResultRow(
+                            contact: result,
+                            onTap: () => widget.onSelectResult(result),
+                          ),
                       const SizedBox(height: 24),
                       const _SearchMapCard(),
                     ],

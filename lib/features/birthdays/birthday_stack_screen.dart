@@ -99,20 +99,21 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Row(
-                            children: [
-                              for (final tab in BirthdayGroup.values)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 28),
-                                  child: _BirthdayTab(
-                                    label: tab.label,
-                                    selected: _selectedGroup == tab,
-                                    onTap: () => setState(() => _selectedGroup = tab),
-                                  ),
-                                ),
-                            ],
+                        SizedBox(
+                          height: 34,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            itemCount: BirthdayGroup.values.length,
+                            separatorBuilder: (_, _) => const SizedBox(width: 28),
+                            itemBuilder: (context, index) {
+                              final tab = BirthdayGroup.values[index];
+                              return _BirthdayTab(
+                                label: tab.label,
+                                selected: _selectedGroup == tab,
+                                onTap: () => setState(() => _selectedGroup = tab),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -318,7 +319,10 @@ class BirthdayFanOutOverlay extends StatelessWidget {
                         scale: 1 - (0.08 * curve),
                         child: Opacity(
                           opacity: (1.2 - controller.value * 1.35).clamp(0.0, 1.0),
-                          child: _DeckFanCoreCard(totalBirthdays: totalBirthdays),
+                          child: _DeckFanCoreCard(
+                            totalBirthdays: totalBirthdays,
+                            contactInitials: contacts.take(3).map((entry) => entry.initials).toList(),
+                          ),
                         ),
                       ),
                     ],
@@ -334,9 +338,13 @@ class BirthdayFanOutOverlay extends StatelessWidget {
 }
 
 class _DeckFanCoreCard extends StatelessWidget {
-  const _DeckFanCoreCard({required this.totalBirthdays});
+  const _DeckFanCoreCard({
+    required this.totalBirthdays,
+    required this.contactInitials,
+  });
 
   final int totalBirthdays;
+  final List<String> contactInitials;
 
   @override
   Widget build(BuildContext context) {
@@ -379,9 +387,9 @@ class _DeckFanCoreCard extends StatelessWidget {
           const Spacer(),
           Row(
             children: [
-              for (final label in const ['ET', 'JV', 'SJ'])
+              for (var index = 0; index < contactInitials.length; index++)
                 Transform.translate(
-                  offset: Offset(label == 'ET' ? 0 : -8, 0),
+                  offset: Offset(index == 0 ? 0 : -8, 0),
                   child: Container(
                     width: 36,
                     height: 36,
@@ -392,12 +400,31 @@ class _DeckFanCoreCard extends StatelessWidget {
                       border: Border.all(color: const Color(0xFFF4EBD0), width: 1.6),
                     ),
                     child: Text(
-                      label,
+                      contactInitials[index],
                       style: const TextStyle(
                         color: Color(0xFFF4EBD0),
                         fontWeight: FontWeight.w700,
                         fontSize: 11,
                       ),
+                    ),
+                  ),
+                ),
+              if (contactInitials.isEmpty)
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF101010).withValues(alpha: 0.92),
+                    border: Border.all(color: const Color(0xFFF4EBD0), width: 1.6),
+                  ),
+                  child: const Text(
+                    'NA',
+                    style: TextStyle(
+                      color: Color(0xFFF4EBD0),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
                     ),
                   ),
                 ),

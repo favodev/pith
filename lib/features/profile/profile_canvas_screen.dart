@@ -406,8 +406,9 @@ class _ProfileActionsRow extends StatelessWidget {
           Text(
             action,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0x449AA8C0),
+              color: const Color(0x8A9AA8C0),
               letterSpacing: 2.2,
+              fontWeight: FontWeight.w600,
             ),
           ),
       ],

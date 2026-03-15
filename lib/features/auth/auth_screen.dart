@@ -16,6 +16,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
   bool _isSubmitting = false;
   bool _isResettingPassword = false;
+  bool _isFeedbackError = false;
   String? _feedback;
 
   @override
@@ -32,17 +33,24 @@ class _AuthScreenState extends State<AuthScreen> {
     final fullName = _nameController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _feedback = 'Completa email y clave para continuar.');
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'Completa email y clave para continuar.';
+      });
       return;
     }
 
     if (!_isLogin && fullName.isEmpty) {
-      setState(() => _feedback = 'Agrega tu nombre para crear tu cuenta.');
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'Agrega tu nombre para crear tu cuenta.';
+      });
       return;
     }
 
     setState(() {
       _isSubmitting = true;
+      _isFeedbackError = false;
       _feedback = null;
     });
 
@@ -59,14 +67,21 @@ class _AuthScreenState extends State<AuthScreen> {
 
         if (response.session == null) {
           setState(() {
+            _isFeedbackError = false;
             _feedback = 'Cuenta creada. Revisa tu correo para confirmar e iniciar sesion.';
           });
         }
       }
     } on AuthException catch (error) {
-      setState(() => _feedback = _friendlyAuthMessage(error.message));
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = _friendlyAuthMessage(error.message);
+      });
     } catch (_) {
-      setState(() => _feedback = 'No se pudo completar la operacion. Intenta nuevamente.');
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'No se pudo completar la operacion. Intenta nuevamente.';
+      });
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -77,6 +92,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void _toggleMode() {
     setState(() {
       _isLogin = !_isLogin;
+      _isFeedbackError = false;
       _feedback = null;
     });
   }
@@ -85,6 +101,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       setState(() {
+        _isFeedbackError = true;
         _feedback = 'Escribe tu email para recuperar la clave.';
       });
       return;
@@ -92,20 +109,24 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() {
       _isResettingPassword = true;
+      _isFeedbackError = false;
       _feedback = null;
     });
 
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(email);
       setState(() {
+        _isFeedbackError = false;
         _feedback = 'Te enviamos un correo para restablecer tu clave.';
       });
     } on AuthException catch (error) {
       setState(() {
+        _isFeedbackError = true;
         _feedback = _friendlyAuthMessage(error.message);
       });
     } catch (_) {
       setState(() {
+        _isFeedbackError = true;
         _feedback = 'No se pudo enviar el correo de recuperacion. Intenta nuevamente.';
       });
     } finally {
@@ -240,12 +261,28 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                       if (_feedback != null) ...[
                         const SizedBox(height: 12),
-                        Text(
-                          _feedback!,
-                          textAlign: TextAlign.center,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFFF4C025),
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                          decoration: BoxDecoration(
+                            color: _isFeedbackError
+                                ? const Color(0x26F06A6A)
+                                : const Color(0x1AF4C025),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _isFeedbackError
+                                  ? const Color(0x66F06A6A)
+                                  : const Color(0x66F4C025),
+                            ),
+                          ),
+                          child: Text(
+                            _feedback!,
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: _isFeedbackError
+                                  ? const Color(0xFFFFB7B7)
+                                  : const Color(0xFFF4EBD0),
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
