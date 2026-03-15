@@ -53,6 +53,7 @@ class BirthdayContact {
   const BirthdayContact({
     required this.name,
     required this.relation,
+    required this.birthday,
     required this.subtitle,
     required this.initials,
     required this.accent,
@@ -64,6 +65,7 @@ class BirthdayContact {
 
   final String name;
   final String relation;
+  final DateTime? birthday;
   final String subtitle;
   final String initials;
   final Color accent;

@@ -146,8 +146,7 @@ class _PithShellState extends State<PithShell>
           for (final contact in contacts) contact.fullName: _profileFromRemoteContact(contact),
         };
         _birthdayContacts = [
-          for (final contact in contacts)
-            if (_isBirthdayToday(contact.birthday)) _birthdayFromRemoteContact(contact),
+          for (final contact in contacts) _birthdayFromRemoteContact(contact),
         ];
         _searchContacts = [
           for (final contact in contacts) _searchFromRemoteContact(contact),
@@ -251,6 +250,7 @@ class _PithShellState extends State<PithShell>
     return BirthdayContact(
       name: contact.fullName,
       relation: contact.circleName,
+      birthday: contact.birthday,
       subtitle: _birthdaySubtitle(contact.birthday),
       initials: _initialsFromName(contact.fullName),
       accent: _colorFromHex(contact.circleColorHex),
@@ -376,6 +376,12 @@ class _PithShellState extends State<PithShell>
     return birthday.month == now.month && birthday.day == now.day;
   }
 
+  List<BirthdayContact> get _todayBirthdayContacts {
+    return _birthdayContacts
+        .where((contact) => _isBirthdayToday(contact.birthday))
+        .toList();
+  }
+
   String _birthdaySubtitle(DateTime? birthday) {
     if (birthday == null) {
       return 'Sin cumpleanos';
@@ -431,8 +437,9 @@ class _PithShellState extends State<PithShell>
   }
 
   DeckSummary get _deckSummary {
-    final total = _birthdayContacts.length;
-    final avatars = _birthdayContacts
+    final todayContacts = _todayBirthdayContacts;
+    final total = todayContacts.length;
+    final avatars = todayContacts
         .take(3)
         .map((contact) => contact.initials)
         .toList();
@@ -661,16 +668,14 @@ class _PithShellState extends State<PithShell>
     final savedRecord = record;
 
     final profile = _profileFromRemoteContact(savedRecord);
-    final birthday = _isBirthdayToday(savedRecord.birthday)
-      ? _birthdayFromRemoteContact(savedRecord)
-      : null;
+    final birthday = _birthdayFromRemoteContact(savedRecord);
     final search = _searchFromRemoteContact(savedRecord);
 
     setState(() {
       _remoteContactsByName[savedRecord.fullName] = savedRecord;
       _profiles[profile.name] = profile;
       _birthdayContacts = [
-        ?birthday,
+        birthday,
         ..._birthdayContacts.where((item) => item.name != savedRecord.fullName),
       ];
       _searchContacts = [search, ..._searchContacts.where((item) => item.name != search.name)];
@@ -809,9 +814,7 @@ class _PithShellState extends State<PithShell>
     final updatedRecord = updated;
 
     final profile = _profileFromRemoteContact(updatedRecord);
-    final birthday = _isBirthdayToday(updatedRecord.birthday)
-      ? _birthdayFromRemoteContact(updatedRecord)
-      : null;
+    final birthday = _birthdayFromRemoteContact(updatedRecord);
     final search = _searchFromRemoteContact(updatedRecord);
 
     setState(() {
@@ -822,7 +825,7 @@ class _PithShellState extends State<PithShell>
       _profiles[profile.name] = profile;
 
       _birthdayContacts = [
-        ?birthday,
+        birthday,
         ..._birthdayContacts.where((item) => item.name != oldName && item.name != updatedRecord.fullName),
       ];
       _searchContacts = [
@@ -968,6 +971,7 @@ class _PithShellState extends State<PithShell>
       ),
       BirthdayStackScreen(
         contacts: _birthdayContacts,
+        todayCount: _todayBirthdayContacts.length,
         onBack: () => setState(() => _currentIndex = 0),
         onOpenSearch: _openSearch,
         onSendNote: _sendBirthdayNote,
@@ -1008,8 +1012,10 @@ class _PithShellState extends State<PithShell>
               child: IgnorePointer(
                 child: BirthdayFanOutOverlay(
                   controller: _fanOutController,
-                  contacts: _birthdayContacts.take(5).toList(),
-                  totalBirthdays: _birthdayContacts.length,
+                  contacts: (_todayBirthdayContacts.isEmpty ? _birthdayContacts : _todayBirthdayContacts)
+                      .take(5)
+                      .toList(),
+                  totalBirthdays: _todayBirthdayContacts.length,
                 ),
               ),
             ),

@@ -7,6 +7,7 @@ class BirthdayStackScreen extends StatefulWidget {
   const BirthdayStackScreen({
     super.key,
     required this.contacts,
+    required this.todayCount,
     required this.onBack,
     required this.onOpenSearch,
     required this.onSendNote,
@@ -14,6 +15,7 @@ class BirthdayStackScreen extends StatefulWidget {
   });
 
   final List<BirthdayContact> contacts;
+  final int todayCount;
   final VoidCallback onBack;
   final VoidCallback onOpenSearch;
   final ValueChanged<BirthdayContact> onSendNote;
@@ -84,7 +86,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                               ),
                               Expanded(
                                 child: Text(
-                                  '${widget.contacts.length} cumpleanos hoy',
+                                  '${widget.todayCount} cumpleanos hoy · ${widget.contacts.length} en total',
                                   textAlign: TextAlign.center,
                                   style: textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
