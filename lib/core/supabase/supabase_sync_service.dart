@@ -166,7 +166,7 @@ class SupabaseSyncService {
       final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
 
       final circle = _extractCircleRow(row['circle']);
-      final circleName = (circle?['name'] as String?)?.trim() ?? 'All Contacts';
+      final circleName = (circle?['name'] as String?)?.trim() ?? 'Todos';
       final circlePriority = (circle?['priority_level'] as int?) ?? 3;
       final circleColorHex = (circle?['color_hex'] as String?)?.trim() ?? '#6E7789';
 
@@ -529,18 +529,18 @@ class SupabaseSyncService {
 
   String _formatDate(DateTime date) {
     const months = [
-      'JAN',
+      'ENE',
       'FEB',
       'MAR',
-      'APR',
+      'ABR',
       'MAY',
       'JUN',
       'JUL',
-      'AUG',
+      'AGO',
       'SEP',
       'OCT',
       'NOV',
-      'DEC',
+      'DIC',
     ];
 
     return '${months[date.month - 1]} ${date.day}, ${date.year}';

@@ -474,7 +474,7 @@ class _EmptyHomeState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Agrega tu primer contacto desde Stacks y Pith empezara a construir tu memoria privada.',
+            'Agrega tu primer contacto desde Pilas y Pith empezara a construir tu memoria privada.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFF9AA8C0),
                   height: 1.35,

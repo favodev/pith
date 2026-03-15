@@ -105,7 +105,7 @@ class _PithShellState extends State<PithShell>
 
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Inicio', icon: Icons.home_rounded),
-    ShellTabItem(label: 'Stacks', icon: Icons.layers_rounded),
+    ShellTabItem(label: 'Pilas', icon: Icons.layers_rounded),
     ShellTabItem(label: 'Calendario', icon: Icons.calendar_today_rounded),
     ShellTabItem(label: 'Perfil', icon: Icons.person_rounded),
   ];
@@ -225,7 +225,7 @@ class _PithShellState extends State<PithShell>
         sparks: [
           QuickSparkEntry(
             dateLabel: 'HOY',
-            content: 'Crea un contacto desde el boton + en Stacks para empezar.',
+            content: 'Crea un contacto desde el boton + en Pilas para empezar.',
             highlighted: true,
           ),
         ],
@@ -892,7 +892,7 @@ class _PithShellState extends State<PithShell>
   void _submitSpark(String value) {
     if (_profiles.isEmpty) {
       setState(() {
-        _sparkFeedback = 'No hay contactos aun. Crea uno desde Stacks con el boton +.';
+        _sparkFeedback = 'No hay contactos aun. Crea uno desde Pilas con el boton +.';
       });
       return;
     }
@@ -950,6 +950,10 @@ class _PithShellState extends State<PithShell>
 
   @override
   Widget build(BuildContext context) {
+    if (Supabase.instance.client.auth.currentSession == null) {
+      return const AuthScreen();
+    }
+
     final screens = [
       HomeDashboardScreen(
         deck: _deckSummary,

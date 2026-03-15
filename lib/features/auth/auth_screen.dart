@@ -37,7 +37,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (email.isEmpty || password.isEmpty) {
       setState(() {
         _isFeedbackError = true;
-        _feedback = 'Completa email y clave para continuar.';
+        _feedback = 'Completa correo y clave para continuar.';
       });
       return;
     }
@@ -145,7 +145,7 @@ class _AuthScreenState extends State<AuthScreen> {
   String _friendlyAuthMessage(String raw) {
     final lower = raw.toLowerCase();
     if (lower.contains('invalid login credentials')) {
-      return 'Email o clave invalidos.';
+      return 'Correo o clave invalidos.';
     }
     if (lower.contains('email not confirmed')) {
       return 'Debes confirmar tu email antes de iniciar sesion.';
@@ -221,7 +221,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                       _AuthField(
                         controller: _emailController,
-                        hint: 'Email',
+                        hint: 'Correo',
                         icon: Icons.alternate_email_rounded,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
