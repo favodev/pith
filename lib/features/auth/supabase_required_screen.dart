@@ -8,18 +8,8 @@ class SupabaseRequiredScreen extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF08101B),
-              Color(0xFF0E1727),
-              Color(0xFF0A111D),
-            ],
-          ),
-        ),
+      body: ColoredBox(
+        color: Color(0xFF070B13),
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(

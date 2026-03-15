@@ -77,9 +77,9 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () {},
+                        onPressed: null,
                         icon: const Icon(Icons.more_horiz_rounded),
-                        color: const Color(0xFFF4EBD0),
+                        disabledColor: const Color(0x66F4EBD0),
                       ),
                     ],
                   ),

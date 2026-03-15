@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models/pith_models.dart';
+import '../../core/theme/pith_colors.dart';
 
 class PithLogo extends StatelessWidget {
   const PithLogo({super.key});
@@ -19,7 +20,7 @@ class PithLogo extends StatelessWidget {
             width: index == 3 ? 8 : 6,
             height: index == 3 ? 8 : 6,
             decoration: const BoxDecoration(
-              color: Color(0xFFF4C025),
+              color: PithColors.gold,
               shape: BoxShape.circle,
             ),
           ),
@@ -47,7 +48,7 @@ class IconButtonBubble extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.04),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
-        child: Icon(icon, color: const Color(0xFFF4EBD0), size: 22),
+        child: Icon(icon, color: PithColors.cream, size: 22),
       ),
     );
   }
@@ -67,7 +68,7 @@ class TopCircleButton extends StatelessWidget {
       child: SizedBox(
         width: 40,
         height: 40,
-        child: Icon(icon, color: const Color(0xFF9AA8C0), size: 22),
+        child: Icon(icon, color: PithColors.muted, size: 22),
       ),
     );
   }
@@ -87,7 +88,7 @@ class ShellNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(0xFFF4C025) : const Color(0xFF9AA8C0);
+    final color = selected ? PithColors.gold : PithColors.muted;
 
     return InkWell(
       onTap: onTap,

@@ -9,6 +9,8 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  static const _authRedirectUrl = 'pith://auth/callback';
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
@@ -62,6 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
         final response = await auth.signUp(
           email: email,
           password: password,
+          emailRedirectTo: _authRedirectUrl,
           data: {'full_name': fullName},
         );
 
@@ -114,7 +117,8 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+        await Supabase.instance.client.auth
+          .resetPasswordForEmail(email, redirectTo: _authRedirectUrl);
       setState(() {
         _isFeedbackError = false;
         _feedback = 'Te enviamos un correo para restablecer tu clave.';
@@ -160,18 +164,8 @@ class _AuthScreenState extends State<AuthScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF08101B),
-              Color(0xFF0E1727),
-              Color(0xFF0A111D),
-            ],
-          ),
-        ),
+      body: ColoredBox(
+        color: Color(0xFF070B13),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -238,6 +232,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         hint: 'Clave',
                         icon: Icons.lock_rounded,
                         obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _submit(),
                       ),
@@ -418,6 +413,8 @@ class _AuthField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      smartDashesType: SmartDashesType.disabled,
+      smartQuotesType: SmartQuotesType.disabled,
       textInputAction: textInputAction,
       onSubmitted: onSubmitted,
       style: const TextStyle(

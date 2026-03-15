@@ -967,18 +967,8 @@ class _PithShellState extends State<PithShell>
     return Scaffold(
       body: Stack(
         children: [
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF0A0C12),
-                  Color(0xFF0D121A),
-                  Color(0xFF0A0C12),
-                ],
-              ),
-            ),
+          ColoredBox(
+            color: Color(0xFF070B13),
             child: SafeArea(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 280),

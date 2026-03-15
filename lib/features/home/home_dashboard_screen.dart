@@ -435,19 +435,24 @@ class _ShortcutRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const shortcuts = ['LOG MEETING', 'SET REMINDER', 'SHARE PROFILE'];
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        for (final item in shortcuts)
-          Text(
-            item,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF8FA0BC),
-              letterSpacing: 2.6,
-              fontWeight: FontWeight.w600,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        alignment: WrapAlignment.start,
+        spacing: 18,
+        runSpacing: 10,
+        children: [
+          for (final item in shortcuts)
+            Text(
+              item,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0xFF8FA0BC),
+                letterSpacing: 2.6,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

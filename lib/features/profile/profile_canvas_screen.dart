@@ -399,19 +399,24 @@ class _ProfileActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const actions = ['LOG MEETING', 'SET REMINDER', 'SHARE PROFILE'];
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        for (final action in actions)
-          Text(
-            action,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0x8A9AA8C0),
-              letterSpacing: 2.2,
-              fontWeight: FontWeight.w600,
+    return Align(
+      alignment: Alignment.center,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 10,
+        children: [
+          for (final action in actions)
+            Text(
+              action,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0x8A9AA8C0),
+                letterSpacing: 2.2,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
