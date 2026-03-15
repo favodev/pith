@@ -28,14 +28,14 @@ class SupabaseRequiredScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Supabase setup required',
+                        'Se requiere configuracion de Supabase',
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'This build runs in cloud-only mode. Configure SUPABASE_URL and SUPABASE_ANON_KEY, then run again.',
+                        'Esta app corre en modo solo nube. Configura SUPABASE_URL y SUPABASE_ANON_KEY y vuelve a ejecutar.',
                         style: textTheme.bodyLarge?.copyWith(
                           color: const Color(0xFF9AA8C0),
                           height: 1.4,

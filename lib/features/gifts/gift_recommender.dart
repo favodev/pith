@@ -24,43 +24,43 @@ class GiftRecommender {
 
     if (_hasAny(source, ['rap', 'hip-hop', 'hip hop', 'vinyl'])) {
       add(
-        'Rare 90s hip-hop vinyl pressing',
-        'Matches the profile preference for rap history and analog records.',
+        'Vinilo raro de hip-hop de los 90',
+        'Encaja con la preferencia del perfil por historia del rap y formatos analogos.',
       );
     }
 
     if (_hasAny(source, ['coffee', 'roast', 'espresso'])) {
       add(
-        'Single-origin light roast set',
-        'Fits recurring mentions around coffee rituals and tasting details.',
+        'Set de cafe de origen unico, tueste ligero',
+        'Encaja con menciones frecuentes sobre rituales de cafe y detalles de cata.',
       );
     }
 
     if (_hasAny(source, ['garden', 'flowers', 'flor'])) {
       add(
-        'Curated cream-tone flower arrangement',
-        'Aligned with previous sparks about floral taste and warm palettes.',
+        'Arreglo floral curado en tonos crema',
+        'Alineado con sparks previos sobre gusto floral y paletas calidas.',
       );
     }
 
     if (_hasAny(source, ['opera', 'piano', 'music'])) {
       add(
-        'Opera or chamber music evening',
-        'Builds on documented preference for classical performances.',
+        'Noche de opera o musica de camara',
+        'Se apoya en la preferencia documentada por presentaciones clasicas.',
       );
     }
 
     if (_hasAny(source, ['chocolate', 'mezcal'])) {
       add(
-        'Craft dark chocolate + mezcal pair',
-        'Directly references saved sparks about flavor preferences.',
+        'Maridaje artesanal de chocolate oscuro y mezcal',
+        'Hace referencia directa a sparks guardados sobre preferencias de sabor.',
       );
     }
 
     if (suggestions.isEmpty) {
       add(
-        'Handwritten premium gift note',
-        'Safe fallback while gathering more preference signals.',
+        'Nota de regalo premium escrita a mano',
+        'Alternativa segura mientras se recopilan mas senales de preferencia.',
       );
     }
 

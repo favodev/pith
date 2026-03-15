@@ -131,7 +131,7 @@ class _StoryChip extends StatelessWidget {
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(colors: ringColors),
+              color: ringColors.first,
             ),
             child: Container(
               decoration: BoxDecoration(
@@ -145,14 +145,7 @@ class _StoryChip extends StatelessWidget {
                 height: 54,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      story.accent.withValues(alpha: 0.9),
-                      const Color(0xFF1A2437),
-                    ],
-                  ),
+                  color: story.accent.withValues(alpha: 0.78),
                 ),
               ),
             ),
@@ -201,11 +194,7 @@ class _FeedCard extends StatelessWidget {
             height: 192,
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: card.gradient,
-              ),
+              color: card.gradient.first,
             ),
             child: Stack(
               children: [
@@ -319,7 +308,7 @@ class _RadarSidebar extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      'JAN',
+                      'ENE',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: const Color(0x669AA8C0),
                         fontSize: 9,
@@ -341,7 +330,7 @@ class _RadarSidebar extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'DEC',
+                      'DIC',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: const Color(0x669AA8C0),
                         fontSize: 9,

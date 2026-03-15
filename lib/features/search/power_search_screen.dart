@@ -69,7 +69,7 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                       ),
                       Expanded(
                         child: Text(
-                          'Power Search',
+                          'Busqueda avanzada',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -111,7 +111,7 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                               border: InputBorder.none,
                               fillColor: Colors.transparent,
                               filled: false,
-                              hintText: 'Search for anything...',
+                              hintText: 'Busca lo que sea...',
                               hintStyle: TextStyle(color: Color(0xAA9AA8C0)),
                               contentPadding: EdgeInsets.zero,
                             ),
@@ -147,13 +147,13 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                       runSpacing: 12,
                       children: [
                         _SearchChip(
-                          label: 'Nearby: San Carlos',
+                          label: 'Cerca: San Carlos',
                           icon: Icons.location_on_rounded,
                           selected: true,
                           trailing: Icons.expand_more_rounded,
                         ),
                         _SearchChip(
-                          label: 'Contacts',
+                          label: 'Contactos',
                           icon: Icons.group_rounded,
                           trailing: Icons.expand_more_rounded,
                         ),
@@ -167,7 +167,7 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: _SearchChip(
-                      label: 'Recent',
+                      label: 'Recientes',
                       icon: Icons.history_rounded,
                     ),
                   ),
@@ -177,7 +177,7 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'CONTACTS INTERESTED IN "${query.isEmpty ? 'RAP' : query.toUpperCase()}"',
+                      'CONTACTOS INTERESADOS EN "${query.isEmpty ? 'RAP' : query.toUpperCase()}"',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: const Color(0xFF8392AD),
                         letterSpacing: 3,
@@ -203,14 +203,14 @@ class _PowerSearchScreenState extends State<PowerSearchScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'No matches found',
+                                'No hay coincidencias',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Try a different keyword or add more contacts to improve search results.',
+                                'Prueba otra palabra clave o agrega mas contactos para mejorar los resultados.',
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: const Color(0xFF9AA8C0),
                                   height: 1.35,
@@ -411,11 +411,7 @@ class _SearchMapCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(26),
             border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0x55182435), Color(0x3309111F)],
-            ),
+            color: const Color(0x22182435),
           ),
           child: Stack(
             children: [
@@ -443,7 +439,7 @@ class _SearchMapCard extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          'ACTIVE SEARCH IN SAN CARLOS',
+          'BUSQUEDA ACTIVA EN SAN CARLOS',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: const Color(0xFF8392AD),
             letterSpacing: 3,

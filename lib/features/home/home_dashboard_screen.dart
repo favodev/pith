@@ -49,7 +49,7 @@ class HomeDashboardScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'RECENT PULSE',
+                      'PULSO RECIENTE',
                       style: textTheme.labelLarge?.copyWith(
                         color: const Color(0xFF8392AD),
                         letterSpacing: 3.2,
@@ -58,7 +58,7 @@ class HomeDashboardScreen extends StatelessWidget {
                     ),
                     if (hasContacts)
                       Text(
-                        'View all',
+                        'Ver todo',
                         style: textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFFF4C025),
                           fontWeight: FontWeight.w700,
@@ -131,11 +131,7 @@ class _HeaderBar extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFF4C025).withValues(alpha: 0.35)),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFF7D89A), Color(0xFFD7A46D)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+              color: const Color(0xFFD7A46D),
             ),
             alignment: Alignment.center,
             child: const Icon(Icons.person, color: Color(0xFF3B2A16), size: 20),
@@ -207,7 +203,7 @@ class _DeckCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'STACKED DECK',
+                            'STACK PRINCIPAL',
                             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                               color: const Color(0xFF8392AD),
                               letterSpacing: 4,
@@ -314,11 +310,7 @@ class _PulseCard extends StatelessWidget {
             height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [item.tint.withValues(alpha: 0.9), item.tint.withValues(alpha: 0.45)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: item.tint.withValues(alpha: 0.82),
             ),
             alignment: Alignment.center,
             child: Text(
@@ -412,7 +404,7 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
             child: Center(
               widthFactor: 1,
               child: Text(
-                'ENTER',
+                'ENVIAR',
                 style: TextStyle(
                   color: Color(0xFF8392AD),
                   fontSize: 10,
@@ -433,7 +425,7 @@ class _ShortcutRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const shortcuts = ['LOG MEETING', 'SET REMINDER', 'SHARE PROFILE'];
+    const shortcuts = ['REGISTRAR REUNION', 'PONER RECORDATORIO', 'COMPARTIR PERFIL'];
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -475,14 +467,14 @@ class _EmptyHomeState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Your account is ready',
+            'Tu cuenta esta lista',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Add your first contact from Stacks and Pith will begin building your private memory graph.',
+            'Agrega tu primer contacto desde Stacks y Pith empezara a construir tu memoria privada.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFF9AA8C0),
                   height: 1.35,
@@ -492,7 +484,7 @@ class _EmptyHomeState extends StatelessWidget {
           FilledButton.tonalIcon(
             onPressed: onAddFirstContact,
             icon: const Icon(Icons.person_add_alt_1_rounded),
-            label: const Text('Add first contact'),
+            label: const Text('Agregar primer contacto'),
           ),
         ],
       ),

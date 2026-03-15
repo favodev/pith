@@ -40,9 +40,9 @@ class PulseItem {
 enum BirthdayPriority { vip, standard }
 
 enum BirthdayGroup {
-  allContacts('All Contacts'),
-  family('Family'),
-  innerCircle('Inner Circle');
+  allContacts('Todos'),
+  family('Familia'),
+  innerCircle('Circulo cercano');
 
   const BirthdayGroup(this.label);
 

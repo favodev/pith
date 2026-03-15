@@ -84,7 +84,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                               ),
                               Expanded(
                                 child: Text(
-                                  '${widget.contacts.length} Birthdays Today',
+                                  '${widget.contacts.length} cumpleanos hoy',
                                   textAlign: TextAlign.center,
                                   style: textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
@@ -132,7 +132,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                         const Icon(Icons.stars_rounded, color: Color(0xFFF4C025), size: 20),
                         const SizedBox(width: 10),
                         Text(
-                          'PRIORITY WISHES',
+                          'DESEOS PRIORITARIOS',
                           style: textTheme.labelLarge?.copyWith(
                             color: const Color(0xFFF4C025),
                             letterSpacing: 4,
@@ -155,14 +155,14 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'No contacts in this group yet',
+                              'No hay contactos en este grupo',
                               style: textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to create a contact and it will sync to your account.',
+                              'Pulsa + para crear un contacto y se sincronizara con tu cuenta.',
                               style: textTheme.bodyMedium?.copyWith(
                                 color: const Color(0xFF9AA8C0),
                                 height: 1.35,
@@ -278,14 +278,7 @@ class BirthdayFanOutOverlay extends StatelessWidget {
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(0, -0.1),
-                      radius: 0.9,
-                      colors: [
-                        const Color(0x22F4C025).withValues(alpha: 0.36 * curve),
-                        Colors.transparent,
-                      ],
-                    ),
+                    color: const Color(0x11000000).withValues(alpha: 0.18 * curve),
                   ),
                 ),
               ),
@@ -367,7 +360,7 @@ class _DeckFanCoreCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'STACKED DECK',
+            'STACK PRINCIPAL',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: const Color(0xFF8392AD),
               letterSpacing: 4,
@@ -376,7 +369,7 @@ class _DeckFanCoreCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '$totalBirthdays Birthdays\ntoday',
+            '$totalBirthdays cumpleanos\nde hoy',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
               color: const Color(0xFFF4EBD0),
               fontWeight: FontWeight.w800,
@@ -456,14 +449,7 @@ class _FanOutMiniCard extends StatelessWidget {
               : Colors.white.withValues(alpha: 0.06),
           width: highlight ? 1.6 : 1,
         ),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            contact.accent.withValues(alpha: highlight ? 0.92 : 0.72),
-            const Color(0xFF0D1523),
-          ],
-        ),
+        color: contact.accent.withValues(alpha: highlight ? 0.42 : 0.28),
         boxShadow: highlight
             ? const [
                 BoxShadow(
@@ -614,14 +600,7 @@ class BirthdayCard extends StatelessWidget {
                 : Colors.white.withValues(alpha: 0.05),
             width: isVip ? 2 : 1,
           ),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              contact.accent.withValues(alpha: isVip ? 0.94 : 0.52),
-              const Color(0xFF111A28),
-            ],
-          ),
+          color: contact.accent.withValues(alpha: isVip ? 0.36 : 0.24),
           boxShadow: isVip
               ? const [
                   BoxShadow(
@@ -651,12 +630,7 @@ class BirthdayCard extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(34),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Color(0xCC07101C)],
-                    stops: [0.35, 1],
-                  ),
+                  color: const Color(0x4407101C),
                 ),
               ),
             ),

@@ -331,7 +331,7 @@ class _ModeSwitch extends StatelessWidget {
       children: [
         Expanded(
           child: _ModeChip(
-            label: 'Login',
+            label: 'Ingresar',
             selected: isLogin,
             onTap: isLogin ? null : onToggle,
           ),

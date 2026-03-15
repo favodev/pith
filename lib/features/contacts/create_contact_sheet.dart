@@ -201,9 +201,9 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                   style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w700),
                   items: const [
                     DropdownMenuItem(value: 'VIP', child: Text('VIP')),
-                    DropdownMenuItem(value: 'Family', child: Text('Family')),
-                    DropdownMenuItem(value: 'Inner Circle', child: Text('Inner Circle')),
-                    DropdownMenuItem(value: 'All Contacts', child: Text('All Contacts')),
+                    DropdownMenuItem(value: 'Familia', child: Text('Familia')),
+                    DropdownMenuItem(value: 'Circulo cercano', child: Text('Circulo cercano')),
+                    DropdownMenuItem(value: 'Todos', child: Text('Todos')),
                   ],
                   onChanged: (value) {
                     if (value != null) {

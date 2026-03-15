@@ -47,18 +47,18 @@ class QuickSparkParser {
 
   static String _formatDate(DateTime date) {
     const months = [
-      'JAN',
+      'ENE',
       'FEB',
       'MAR',
-      'APR',
+      'ABR',
       'MAY',
       'JUN',
       'JUL',
-      'AUG',
+      'AGO',
       'SEP',
       'OCT',
       'NOV',
-      'DEC',
+      'DIC',
     ];
 
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
@@ -92,25 +92,25 @@ class QuickSparkParser {
     }
 
     if (RegExp(r'rap|hip hop|hip-hop').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: '90s Rap', icon: Icons.music_note_rounded));
+      addInterest(const ProfileInterest(label: 'Rap 90s', icon: Icons.music_note_rounded));
     }
     if (RegExp(r'vinyl|vinilo|record').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Analog Vinyl', icon: Icons.album_rounded));
+      addInterest(const ProfileInterest(label: 'Vinilo analogico', icon: Icons.album_rounded));
     }
     if (RegExp(r'coffee|cafe|roast').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Light Roast', icon: Icons.coffee_rounded));
+      addInterest(const ProfileInterest(label: 'Tueste ligero', icon: Icons.coffee_rounded));
     }
     if (RegExp(r'sail|sailing|vela|regatta|coastal').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Coastal Racing', icon: Icons.sailing_rounded));
+      addInterest(const ProfileInterest(label: 'Regata costera', icon: Icons.sailing_rounded));
     }
     if (RegExp(r'brutalis|architect|arquitect').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Brutalism', icon: Icons.architecture_rounded));
+      addInterest(const ProfileInterest(label: 'Brutalismo', icon: Icons.architecture_rounded));
     }
     if (RegExp(r'mezcal').hasMatch(normalized)) {
       addInterest(const ProfileInterest(label: 'Mezcal', icon: Icons.liquor_rounded));
     }
     if (RegExp(r'chocolate').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Dark Chocolate', icon: Icons.cake_rounded));
+      addInterest(const ProfileInterest(label: 'Chocolate oscuro', icon: Icons.cake_rounded));
     }
 
     return inferred;

@@ -120,7 +120,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                 child: const Column(
                                   children: [
                                     Text(
-                                      'Note Saved',
+                                        'Nota guardada',
                                       style: TextStyle(
                                         color: Color(0xFFF8FAFC),
                                         fontSize: 34,
@@ -130,7 +130,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                     ),
                                     SizedBox(height: 12),
                                     Text(
-                                      'Your note has been saved to your private relationship memory.',
+                                      'Tu nota fue guardada en tu memoria privada de relacion.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Color(0xB39AA8C0),
@@ -168,7 +168,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                 ),
                               ),
                               child: const Text(
-                                'Return to Dashboard',
+                                'Volver al inicio',
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                               ),
                             ),
@@ -189,7 +189,7 @@ class _NoteSuccessScreenState extends State<NoteSuccessScreen>
                                 ),
                               ),
                               child: const Text(
-                                'View Details',
+                                'Ver detalles',
                                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
                               ),
                             ),
@@ -280,11 +280,7 @@ class _RecipientCard extends StatelessWidget {
             height: 74,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [receipt.accent.withValues(alpha: 0.92), const Color(0xFF17253D)],
-              ),
+              color: receipt.accent.withValues(alpha: 0.86),
             ),
             alignment: Alignment.center,
             child: Text(

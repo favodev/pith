@@ -7,8 +7,8 @@ void main() {
     await tester.pumpWidget(const PithApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Supabase setup required'), findsOneWidget);
-    expect(find.textContaining('cloud-only mode'), findsOneWidget);
+    expect(find.text('Se requiere configuracion de Supabase'), findsOneWidget);
+    expect(find.textContaining('modo solo nube'), findsOneWidget);
     expect(find.textContaining('--dart-define-from-file=supabase.local.json'), findsOneWidget);
   });
 }

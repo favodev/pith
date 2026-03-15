@@ -48,7 +48,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'BACK TO NETWORK',
+                              'VOLVER A LA RED',
                               style: textTheme.labelMedium?.copyWith(
                                 color: const Color(0x889AA8C0),
                                 letterSpacing: 3,
@@ -88,11 +88,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFF2B374E), Color(0xFF0F172A)],
-                        ),
+                        color: const Color(0xFF1C2738),
                         border: Border.all(color: const Color(0x33F4EBD0)),
                       ),
                       alignment: Alignment.center,
@@ -128,7 +124,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 56),
                 Text(
-                  'CURATED INTERESTS',
+                  'INTERESES CURADOS',
                   textAlign: TextAlign.center,
                   style: textTheme.labelMedium?.copyWith(
                     color: const Color(0x669AA8C0),
@@ -147,7 +143,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 64),
                 Text(
-                  'GIFT INTELLIGENCE',
+                  'INTELIGENCIA DE REGALOS',
                   textAlign: TextAlign.center,
                   style: textTheme.labelMedium?.copyWith(
                     color: const Color(0x669AA8C0),
@@ -156,7 +152,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Suggestions based on your private sparks and interests',
+                  'Sugerencias basadas en tus sparks e intereses privados',
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     color: const Color(0x889AA8C0),
@@ -170,7 +166,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ],
                 const SizedBox(height: 72),
                 Text(
-                  'QUICK SPARKS',
+                  'SPARKS RAPIDOS',
                   textAlign: TextAlign.center,
                   style: textTheme.labelMedium?.copyWith(
                     color: const Color(0x669AA8C0),
@@ -365,7 +361,7 @@ class _SparkComposerState extends State<_SparkComposer> {
           fillColor: Colors.transparent,
           filled: false,
           prefixIcon: const Icon(Icons.terminal_rounded, color: Color(0x88F4C025)),
-          hintText: 'Add a new spark for ${widget.profileName}...',
+          hintText: 'Agrega un nuevo spark para ${widget.profileName}...',
           hintStyle: const TextStyle(color: Color(0x449AA8C0)),
           suffixIcon: const Padding(
             padding: EdgeInsets.only(right: 8),
@@ -397,7 +393,7 @@ class _ProfileActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const actions = ['LOG MEETING', 'SET REMINDER', 'SHARE PROFILE'];
+    const actions = ['REGISTRAR REUNION', 'PONER RECORDATORIO', 'COMPARTIR PERFIL'];
 
     return Align(
       alignment: Alignment.center,

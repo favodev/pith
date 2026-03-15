@@ -82,32 +82,32 @@ class _PithShellState extends State<PithShell>
 
 
   static const _radarStories = [
-    RadarStory(label: 'Trending', highlighted: true, accent: Color(0xFFF4C025)),
-    RadarStory(label: 'Favorites', highlighted: false, accent: Color(0xFF8C9AB2)),
-    RadarStory(label: 'Friends', highlighted: false, accent: Color(0xFF7590C0)),
-    RadarStory(label: 'Family', highlighted: false, accent: Color(0xFFBA8B66)),
+    RadarStory(label: 'Tendencia', highlighted: true, accent: Color(0xFFF4C025)),
+    RadarStory(label: 'Favoritos', highlighted: false, accent: Color(0xFF8C9AB2)),
+    RadarStory(label: 'Amigos', highlighted: false, accent: Color(0xFF7590C0)),
+    RadarStory(label: 'Familia', highlighted: false, accent: Color(0xFFBA8B66)),
   ];
 
   static const _radarFeedCards = [
     RadarFeedCard(
-      title: 'Moments from the weekend',
-      description: 'Exploring the city lights with the crew.',
-      actionLabel: 'View',
+      title: 'Momentos del fin de semana',
+      description: 'Explorando las luces de la ciudad con el grupo.',
+      actionLabel: 'Ver',
       gradient: [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
     ),
     RadarFeedCard(
-      title: 'New Project Launch',
-      description: 'Finally sharing what I\'ve been working on.',
-      actionLabel: 'Read',
+      title: 'Lanzamiento de nuevo proyecto',
+      description: 'Por fin compartiendo en lo que he estado trabajando.',
+      actionLabel: 'Leer',
       gradient: [Color(0xFF7F6652), Color(0xFF201716), Color(0xFF42506B)],
     ),
   ];
 
   final List<ShellTabItem> _tabs = const [
-    ShellTabItem(label: 'Home', icon: Icons.home_rounded),
+    ShellTabItem(label: 'Inicio', icon: Icons.home_rounded),
     ShellTabItem(label: 'Stacks', icon: Icons.layers_rounded),
-    ShellTabItem(label: 'Calendar', icon: Icons.calendar_today_rounded),
-    ShellTabItem(label: 'Profile', icon: Icons.person_rounded),
+    ShellTabItem(label: 'Calendario', icon: Icons.calendar_today_rounded),
+    ShellTabItem(label: 'Perfil', icon: Icons.person_rounded),
   ];
 
   @override
@@ -146,7 +146,8 @@ class _PithShellState extends State<PithShell>
           for (final contact in contacts) contact.fullName: _profileFromRemoteContact(contact),
         };
         _birthdayContacts = [
-          for (final contact in contacts) _birthdayFromRemoteContact(contact),
+          for (final contact in contacts)
+            if (_isBirthdayToday(contact.birthday)) _birthdayFromRemoteContact(contact),
         ];
         _searchContacts = [
           for (final contact in contacts) _searchFromRemoteContact(contact),
@@ -214,17 +215,17 @@ class _PithShellState extends State<PithShell>
   ContactProfile get _activeProfile => _profiles[_activeProfileName] ?? _emptyProfile;
 
   ContactProfile get _emptyProfile => const ContactProfile(
-        name: 'No contact selected',
-        subtitle: 'ADD YOUR FIRST CONTACT TO START',
-        initials: 'NA',
+        name: 'Sin contacto seleccionado',
+        subtitle: 'AGREGA TU PRIMER CONTACTO PARA EMPEZAR',
+        initials: 'SC',
         interests: [
-          ProfileInterest(label: 'Private CRM', icon: Icons.lock_rounded),
-          ProfileInterest(label: 'Cloud Sync', icon: Icons.cloud_done_rounded),
+          ProfileInterest(label: 'CRM privado', icon: Icons.lock_rounded),
+          ProfileInterest(label: 'Sincronizacion nube', icon: Icons.cloud_done_rounded),
         ],
         sparks: [
           QuickSparkEntry(
-            dateLabel: 'TODAY',
-            content: 'Create a contact from the + button in Stacks to begin.',
+            dateLabel: 'HOY',
+            content: 'Crea un contacto desde el boton + en Stacks para empezar.',
             highlighted: true,
           ),
         ],
@@ -232,7 +233,7 @@ class _PithShellState extends State<PithShell>
 
   ContactProfile _profileFromRemoteContact(SupabaseContactRecord contact) {
     final subtitle = contact.locationName.isEmpty
-        ? '${contact.circleName.toUpperCase()} — CONTACT'
+      ? '${contact.circleName.toUpperCase()} — CONTACTO'
         : '${contact.locationName.toUpperCase()} — ${contact.circleName.toUpperCase()}';
 
     return ContactProfile(
@@ -263,7 +264,7 @@ class _PithShellState extends State<PithShell>
   SearchContact _searchFromRemoteContact(SupabaseContactRecord contact) {
     final previewSpark = contact.sparks.isEmpty ? '' : contact.sparks.first.content;
     final description = previewSpark.isEmpty
-        ? 'Circle: ${contact.circleName}'
+      ? 'Circulo: ${contact.circleName}'
         : previewSpark.length > 46
             ? '${previewSpark.substring(0, 46)}...'
             : previewSpark;
@@ -284,24 +285,24 @@ class _PithShellState extends State<PithShell>
     for (final spark in sparks) {
       final content = spark.content.toLowerCase();
       if (content.contains('rap') || content.contains('music') || content.contains('vinyl')) {
-        labels.add('Music Tastes');
+        labels.add('Gustos musicales');
       }
       if (content.contains('coffee') || content.contains('cafe') || content.contains('espresso')) {
-        labels.add('Cafe Rituals');
+        labels.add('Rituales de cafe');
       }
       if (content.contains('gift') || content.contains('regalo')) {
-        labels.add('Gift Clues');
+        labels.add('Pistas de regalo');
       }
       if (content.contains('travel') || content.contains('trip') || content.contains('viaje')) {
-        labels.add('Travel Plans');
+        labels.add('Planes de viaje');
       }
     }
 
     final unique = labels.toSet().take(4).toList();
     if (unique.isEmpty) {
       return const [
-        ProfileInterest(label: 'Shared Moments', icon: Icons.auto_awesome_rounded),
-        ProfileInterest(label: 'Follow-ups', icon: Icons.favorite_border_rounded),
+        ProfileInterest(label: 'Momentos compartidos', icon: Icons.auto_awesome_rounded),
+        ProfileInterest(label: 'Seguimientos', icon: Icons.favorite_border_rounded),
       ];
     }
 
@@ -310,10 +311,10 @@ class _PithShellState extends State<PithShell>
         ProfileInterest(
           label: label,
           icon: switch (label) {
-            'Music Tastes' => Icons.music_note_rounded,
-            'Cafe Rituals' => Icons.coffee_rounded,
-            'Gift Clues' => Icons.card_giftcard_rounded,
-            'Travel Plans' => Icons.flight_takeoff_rounded,
+            'Gustos musicales' => Icons.music_note_rounded,
+            'Rituales de cafe' => Icons.coffee_rounded,
+            'Pistas de regalo' => Icons.card_giftcard_rounded,
+            'Planes de viaje' => Icons.flight_takeoff_rounded,
             _ => Icons.auto_awesome_rounded,
           },
         ),
@@ -324,8 +325,8 @@ class _PithShellState extends State<PithShell>
     if (sparks.isEmpty) {
       return const [
         QuickSparkEntry(
-          dateLabel: 'TODAY',
-          content: 'Ready to capture your first spark.',
+          dateLabel: 'HOY',
+          content: 'Listo para capturar tu primer spark.',
           highlighted: true,
         ),
       ];
@@ -347,7 +348,7 @@ class _PithShellState extends State<PithShell>
         .where((word) => word.trim().isNotEmpty)
         .toList();
     if (words.isEmpty) {
-      return 'NA';
+      return 'SC';
     }
     if (words.length == 1) {
       return words.first.substring(0, 1).toUpperCase();
@@ -357,32 +358,41 @@ class _PithShellState extends State<PithShell>
 
   BirthdayGroup _groupFromRemoteCircle(String name, int priority) {
     final lowered = name.toLowerCase();
-    if (lowered.contains('family')) {
+    if (lowered.contains('family') || lowered.contains('familia')) {
       return BirthdayGroup.family;
     }
-    if (priority <= 2 || lowered.contains('inner') || lowered.contains('vip')) {
+    if (priority <= 2 || lowered.contains('inner') || lowered.contains('circulo') || lowered.contains('vip')) {
       return BirthdayGroup.innerCircle;
     }
     return BirthdayGroup.allContacts;
   }
 
+  bool _isBirthdayToday(DateTime? birthday) {
+    if (birthday == null) {
+      return false;
+    }
+
+    final now = DateTime.now();
+    return birthday.month == now.month && birthday.day == now.day;
+  }
+
   String _birthdaySubtitle(DateTime? birthday) {
     if (birthday == null) {
-      return 'No birthday yet';
+      return 'Sin cumpleanos';
     }
     const months = [
-      'JAN',
+      'ENE',
       'FEB',
       'MAR',
-      'APR',
+      'ABR',
       'MAY',
       'JUN',
       'JUL',
-      'AUG',
+      'AGO',
       'SEP',
       'OCT',
       'NOV',
-      'DEC',
+      'DIC',
     ];
     return '${months[birthday.month - 1]} ${birthday.day}';
   }
@@ -403,18 +413,18 @@ class _PithShellState extends State<PithShell>
 
   String _formatDate(DateTime date) {
     const months = [
-      'JAN',
+      'ENE',
       'FEB',
       'MAR',
-      'APR',
+      'ABR',
       'MAY',
       'JUN',
       'JUL',
-      'AUG',
+      'AGO',
       'SEP',
       'OCT',
       'NOV',
-      'DEC',
+      'DIC',
     ];
 
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
@@ -433,10 +443,10 @@ class _PithShellState extends State<PithShell>
 
     return DeckSummary(
       totalBirthdays: total,
-      title: '$total Birthdays\ntoday',
+      title: '$total Cumpleanos\nde hoy',
       subtitle: total == 0
-          ? 'Your network starts empty. Add your first contact.'
-          : 'A significant moment in your network. Send a note.',
+          ? 'Tu red esta vacia. Agrega tu primer contacto.'
+          : 'Un momento importante en tu red. Envia una nota.',
       avatars: avatars,
     );
   }
@@ -491,9 +501,9 @@ class _PithShellState extends State<PithShell>
     setState(() {
       _noteReceipt = NoteDeliveryReceipt(
         recipientName: contact.name,
-        recipientLabel: 'CONTACT',
+        recipientLabel: 'CONTACTO',
         initials: contact.initials,
-        statusLabel: 'Saved',
+        statusLabel: 'Guardado',
         accent: const Color(0xFFF4C025),
       );
     });
@@ -501,7 +511,7 @@ class _PithShellState extends State<PithShell>
     final birthdaySpark = QuickSparkParseResult(
       spark: QuickSparkEntry(
         dateLabel: _formatDate(DateTime.now()),
-        content: 'Birthday note saved.',
+        content: 'Nota de cumpleanos guardada.',
         highlighted: true,
       ),
       inferredInterests: const [],
@@ -651,13 +661,18 @@ class _PithShellState extends State<PithShell>
     final savedRecord = record;
 
     final profile = _profileFromRemoteContact(savedRecord);
-    final birthday = _birthdayFromRemoteContact(savedRecord);
+    final birthday = _isBirthdayToday(savedRecord.birthday)
+      ? _birthdayFromRemoteContact(savedRecord)
+      : null;
     final search = _searchFromRemoteContact(savedRecord);
 
     setState(() {
       _remoteContactsByName[savedRecord.fullName] = savedRecord;
       _profiles[profile.name] = profile;
-      _birthdayContacts = [birthday, ..._birthdayContacts.where((item) => item.name != birthday.name)];
+      _birthdayContacts = [
+        ?birthday,
+        ..._birthdayContacts.where((item) => item.name != savedRecord.fullName),
+      ];
       _searchContacts = [search, ..._searchContacts.where((item) => item.name != search.name)];
       _activeProfileName = profile.name;
       _profileReturnIndex = _currentIndex;
@@ -669,8 +684,9 @@ class _PithShellState extends State<PithShell>
   _CircleMapping _circleMapping(String circle) {
     return switch (circle) {
       'VIP' => const _CircleMapping(priority: 1, colorHex: '#F4C025'),
-      'Family' => const _CircleMapping(priority: 1, colorHex: '#DEB06D'),
-      'Inner Circle' => const _CircleMapping(priority: 2, colorHex: '#7F6688'),
+      'Family' || 'Familia' => const _CircleMapping(priority: 1, colorHex: '#DEB06D'),
+      'Inner Circle' || 'Circulo cercano' => const _CircleMapping(priority: 2, colorHex: '#7F6688'),
+      'All Contacts' || 'Todos' => const _CircleMapping(priority: 3, colorHex: '#6E7789'),
       _ => const _CircleMapping(priority: 3, colorHex: '#6E7789'),
     };
   }
@@ -704,7 +720,7 @@ class _PithShellState extends State<PithShell>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Contact actions synced to Supabase.',
+                  'Acciones de contacto sincronizadas con Supabase.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF9AA8C0),
                   ),
@@ -718,7 +734,7 @@ class _PithShellState extends State<PithShell>
                       await _editContact(profileName);
                     },
                     icon: const Icon(Icons.edit_rounded),
-                    label: const Text('Edit contact'),
+                    label: const Text('Editar contacto'),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -730,7 +746,7 @@ class _PithShellState extends State<PithShell>
                       await _confirmAndDeleteContact(profileName);
                     },
                     icon: const Icon(Icons.delete_outline_rounded),
-                    label: const Text('Delete contact'),
+                    label: const Text('Eliminar contacto'),
                   ),
                 ),
               ],
@@ -793,7 +809,9 @@ class _PithShellState extends State<PithShell>
     final updatedRecord = updated;
 
     final profile = _profileFromRemoteContact(updatedRecord);
-    final birthday = _birthdayFromRemoteContact(updatedRecord);
+    final birthday = _isBirthdayToday(updatedRecord.birthday)
+      ? _birthdayFromRemoteContact(updatedRecord)
+      : null;
     final search = _searchFromRemoteContact(updatedRecord);
 
     setState(() {
@@ -804,8 +822,8 @@ class _PithShellState extends State<PithShell>
       _profiles[profile.name] = profile;
 
       _birthdayContacts = [
-        birthday,
-        ..._birthdayContacts.where((item) => item.name != oldName && item.name != birthday.name),
+        ?birthday,
+        ..._birthdayContacts.where((item) => item.name != oldName && item.name != updatedRecord.fullName),
       ];
       _searchContacts = [
         search,
@@ -822,16 +840,16 @@ class _PithShellState extends State<PithShell>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete contact?'),
-          content: Text('This will permanently remove $name and its sparks from Supabase.'),
+          title: const Text('Eliminar contacto?'),
+          content: Text('Esto eliminara permanentemente a $name y sus sparks en Supabase.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
+              child: const Text('Eliminar'),
             ),
           ],
         );
@@ -925,8 +943,8 @@ class _PithShellState extends State<PithShell>
       );
       _activeProfileName = targetProfile.name;
       _sparkFeedback = addedLabels.isEmpty
-          ? 'Spark guardado en ${targetProfile.name} • Sync Supabase OK'
-          : 'Spark guardado en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sync Supabase OK';
+          ? 'Spark guardado en ${targetProfile.name} • Sincronizacion Supabase OK'
+          : 'Spark guardado en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sincronizacion Supabase OK';
     });
   }
 
