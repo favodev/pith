@@ -15,6 +15,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _isLogin = true;
   bool _isSubmitting = false;
+  bool _isResettingPassword = false;
   String? _feedback;
 
   @override
@@ -63,7 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
     } on AuthException catch (error) {
-      setState(() => _feedback = error.message);
+      setState(() => _feedback = _friendlyAuthMessage(error.message));
     } catch (_) {
       setState(() => _feedback = 'No se pudo completar la operacion. Intenta nuevamente.');
     } finally {
@@ -78,6 +79,59 @@ class _AuthScreenState extends State<AuthScreen> {
       _isLogin = !_isLogin;
       _feedback = null;
     });
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _feedback = 'Escribe tu email para recuperar la clave.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isResettingPassword = true;
+      _feedback = null;
+    });
+
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      setState(() {
+        _feedback = 'Te enviamos un correo para restablecer tu clave.';
+      });
+    } on AuthException catch (error) {
+      setState(() {
+        _feedback = _friendlyAuthMessage(error.message);
+      });
+    } catch (_) {
+      setState(() {
+        _feedback = 'No se pudo enviar el correo de recuperacion. Intenta nuevamente.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResettingPassword = false;
+        });
+      }
+    }
+  }
+
+  String _friendlyAuthMessage(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('invalid login credentials')) {
+      return 'Email o clave invalidos.';
+    }
+    if (lower.contains('email not confirmed')) {
+      return 'Debes confirmar tu email antes de iniciar sesion.';
+    }
+    if (lower.contains('user already registered')) {
+      return 'Ese email ya esta registrado. Inicia sesion o recupera tu clave.';
+    }
+    if (lower.contains('password should be at least')) {
+      return 'La clave debe tener al menos 6 caracteres.';
+    }
+    return raw;
   }
 
   @override
@@ -166,6 +220,24 @@ class _AuthScreenState extends State<AuthScreen> {
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _submit(),
                       ),
+                      if (_isLogin) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _isSubmitting || _isResettingPassword
+                                ? null
+                                : _resetPassword,
+                            child: _isResettingPassword
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Text('Olvide mi clave'),
+                          ),
+                        ),
+                      ],
                       if (_feedback != null) ...[
                         const SizedBox(height: 12),
                         Text(
