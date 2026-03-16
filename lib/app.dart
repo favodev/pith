@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/models/pith_models.dart';
+import 'core/services/haptics_service.dart';
 import 'core/supabase/supabase_bootstrap.dart';
 import 'core/theme/pith_theme.dart';
 import 'features/auth/auth_screen.dart';
@@ -172,6 +173,8 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
+    unawaited(HapticsService.tap());
+
     if (_birthdayContacts.isEmpty) {
       setState(() {
         _currentIndex = 1;
@@ -195,6 +198,7 @@ class _PithShellState extends State<PithShell>
   }
 
   void _openSearch() {
+    unawaited(HapticsService.select());
     setState(() => _isSearchVisible = true);
   }
 
@@ -203,6 +207,7 @@ class _PithShellState extends State<PithShell>
   }
 
   void _openProfileFromSearch(SearchContact contact) {
+    unawaited(HapticsService.select());
     setState(() {
       _activeProfileName = contact.name;
       _profileReturnIndex = _currentIndex;
@@ -506,6 +511,7 @@ class _PithShellState extends State<PithShell>
   }
 
   void _sendBirthdayNote(BirthdayContact contact) {
+    unawaited(HapticsService.success());
     final targetProfile = _profiles[contact.name];
     if (targetProfile == null) {
       setState(() {
@@ -576,6 +582,8 @@ class _PithShellState extends State<PithShell>
       _openProfileFromTab();
       return;
     }
+
+    unawaited(HapticsService.select());
 
     setState(() {
       _currentIndex = index;
@@ -668,11 +676,14 @@ class _PithShellState extends State<PithShell>
     }
 
     if (record == null) {
+      unawaited(HapticsService.warning());
       setState(() {
         _sparkFeedback = 'No se pudo guardar en Supabase. Revisa la conexion e intenta de nuevo.';
       });
       return;
     }
+
+    unawaited(HapticsService.success());
 
     final savedRecord = record;
 
@@ -814,11 +825,14 @@ class _PithShellState extends State<PithShell>
     }
 
     if (!mounted || updated == null) {
+      unawaited(HapticsService.warning());
       setState(() {
         _sparkFeedback = 'No se pudo actualizar en Supabase. Verifica datos e intenta nuevamente.';
       });
       return;
     }
+
+    unawaited(HapticsService.success());
 
     final updatedRecord = updated;
 
@@ -869,6 +883,7 @@ class _PithShellState extends State<PithShell>
     );
 
     if (shouldDelete == true) {
+      unawaited(HapticsService.warning());
       await _deleteContact(name);
     }
   }
@@ -885,6 +900,8 @@ class _PithShellState extends State<PithShell>
       });
       return;
     }
+
+    unawaited(HapticsService.success());
 
     if (!mounted) {
       return;
@@ -912,6 +929,7 @@ class _PithShellState extends State<PithShell>
     final targetProfile = _resolveProfileForSpark(value);
     final parsed = QuickSparkParser.parse(input: value, profile: targetProfile);
     if (parsed == null) {
+      unawaited(HapticsService.warning());
       setState(() {
         _sparkFeedback = 'Spark no valido. Usa @Julian: ... o escribe una nota directa.';
       });
@@ -931,6 +949,7 @@ class _PithShellState extends State<PithShell>
         spark: parsed.spark,
       );
     } catch (_) {
+      unawaited(HapticsService.warning());
       if (!mounted) {
         return;
       }
@@ -939,6 +958,8 @@ class _PithShellState extends State<PithShell>
       });
       return;
     }
+
+    unawaited(HapticsService.success());
 
     if (!mounted) {
       return;

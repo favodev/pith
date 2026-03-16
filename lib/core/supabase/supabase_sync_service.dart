@@ -76,12 +76,12 @@ class SupabaseSyncService {
     required QuickSparkEntry spark,
   }) async {
     if (!isEnabled) {
-      throw StateError('Supabase is not configured.');
+      throw StateError('Supabase no esta configurado.');
     }
 
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
-      throw StateError('User session is required to save sparks.');
+      throw StateError('Se requiere una sesion de usuario para guardar sparks.');
     }
 
     final circleId = await _ensureDefaultCircleId(userId);
@@ -370,12 +370,12 @@ class SupabaseSyncService {
 
   Future<void> deleteContactByName(String fullName) async {
     if (!isEnabled) {
-      throw StateError('Supabase is not configured.');
+      throw StateError('Supabase no esta configurado.');
     }
 
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
-      throw StateError('User session is required to delete contacts.');
+      throw StateError('Se requiere una sesion de usuario para eliminar contactos.');
     }
 
     await _withRetry<void>(
@@ -729,7 +729,7 @@ class SupabaseSyncService {
       }
     }
     throw SupabaseSyncException(
-      'Operation failed after $_maxRetries attempts${errorContext != null ? ': $errorContext' : ''}',
+      'La operacion fallo tras $_maxRetries intentos${errorContext != null ? ': $errorContext' : ''}',
       lastError,
     );
   }
