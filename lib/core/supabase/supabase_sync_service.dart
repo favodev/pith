@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/pith_models.dart';
@@ -62,6 +63,8 @@ class SupabaseSyncService {
 
   String? _defaultCircleId;
   String? _defaultCircleUserId;
+  final Map<String, Map<String, String>> _circleIdsByUserAndName = {};
+  final Map<String, Map<String, String>> _contactIdsByUserAndName = {};
 
   static const _maxRetries = 3;
   static const _retryDelayMs = 500;
@@ -275,6 +278,9 @@ class SupabaseSyncService {
       return null;
     }
 
+    _rememberCircleId(userId: userId, circleName: payload.circleName, circleId: circleId);
+    _rememberContactId(userId: userId, fullName: fullName, contactId: id);
+
     final birthdayRaw = row['birthday'] as String?;
     final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
     final locationName = (row['location_name'] as String?)?.trim() ?? '';
@@ -351,6 +357,9 @@ class SupabaseSyncService {
       return null;
     }
 
+    _rememberCircleId(userId: userId, circleName: payload.circleName, circleId: circleId);
+    _rememberContactId(userId: userId, fullName: fullName, contactId: id);
+
     final birthdayRaw = row['birthday'] as String?;
     final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
     final locationName = (row['location_name'] as String?)?.trim() ?? '';
@@ -388,6 +397,9 @@ class SupabaseSyncService {
       },
       errorContext: 'eliminar contacto',
     );
+
+    final userCache = _contactIdsByUserAndName[userId];
+    userCache?.remove(fullName.trim().toLowerCase());
   }
 
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
@@ -545,6 +557,11 @@ class SupabaseSyncService {
     required int priorityLevel,
     required String colorHex,
   }) async {
+    final cachedId = _cachedCircleId(userId: userId, circleName: name);
+    if (cachedId != null) {
+      return cachedId;
+    }
+
     final existing = await _withRetry<List<Map<String, dynamic>>>(
       () async {
         final rows = await _client
@@ -559,7 +576,11 @@ class SupabaseSyncService {
     );
 
     if (existing != null && existing.isNotEmpty) {
-      return _readString(existing.first, 'id');
+      final resolvedId = _readString(existing.first, 'id');
+      if (resolvedId != null) {
+        _rememberCircleId(userId: userId, circleName: name, circleId: resolvedId);
+      }
+      return resolvedId;
     }
 
     final inserted = await _withRetry<Map<String, dynamic>>(
@@ -583,7 +604,12 @@ class SupabaseSyncService {
       return null;
     }
 
-    return _readString(inserted, 'id');
+    final resolvedId = _readString(inserted, 'id');
+    if (resolvedId != null) {
+      _rememberCircleId(userId: userId, circleName: name, circleId: resolvedId);
+    }
+
+    return resolvedId;
   }
 
   Future<String?> _ensureContactId({
@@ -591,6 +617,11 @@ class SupabaseSyncService {
     required String circleId,
     required ContactProfile profile,
   }) async {
+    final cachedId = _cachedContactId(userId: userId, fullName: profile.name);
+    if (cachedId != null) {
+      return cachedId;
+    }
+
     final existing = await _withRetry<List<Map<String, dynamic>>>(
       () async {
         final rows = await _client
@@ -605,7 +636,11 @@ class SupabaseSyncService {
     );
 
     if (existing != null && existing.isNotEmpty) {
-      return _readString(existing.first, 'id');
+      final resolvedId = _readString(existing.first, 'id');
+      if (resolvedId != null) {
+        _rememberContactId(userId: userId, fullName: profile.name, contactId: resolvedId);
+      }
+      return resolvedId;
     }
 
     final inserted = await _withRetry<Map<String, dynamic>>(
@@ -629,7 +664,58 @@ class SupabaseSyncService {
       return null;
     }
 
-    return _readString(inserted, 'id');
+    final resolvedId = _readString(inserted, 'id');
+    if (resolvedId != null) {
+      _rememberContactId(userId: userId, fullName: profile.name, contactId: resolvedId);
+    }
+
+    return resolvedId;
+  }
+
+  String? _cachedCircleId({required String userId, required String circleName}) {
+    final userCache = _circleIdsByUserAndName[userId];
+    if (userCache == null) {
+      return null;
+    }
+
+    return userCache[circleName.trim().toLowerCase()];
+  }
+
+  void _rememberCircleId({
+    required String userId,
+    required String circleName,
+    required String circleId,
+  }) {
+    final normalized = circleName.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return;
+    }
+
+    final userCache = _circleIdsByUserAndName.putIfAbsent(userId, () => <String, String>{});
+    userCache[normalized] = circleId;
+  }
+
+  String? _cachedContactId({required String userId, required String fullName}) {
+    final userCache = _contactIdsByUserAndName[userId];
+    if (userCache == null) {
+      return null;
+    }
+
+    return userCache[fullName.trim().toLowerCase()];
+  }
+
+  void _rememberContactId({
+    required String userId,
+    required String fullName,
+    required String contactId,
+  }) {
+    final normalized = fullName.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return;
+    }
+
+    final userCache = _contactIdsByUserAndName.putIfAbsent(userId, () => <String, String>{});
+    userCache[normalized] = contactId;
   }
 
   String? _readString(Map<String, dynamic> row, String key) {
@@ -705,23 +791,44 @@ class SupabaseSyncService {
   Future<T?> _withRetry<T>(Future<T?> Function() operation, {String? errorContext}) async {
     Object? lastError;
     for (var attempt = 1; attempt <= _maxRetries; attempt++) {
+      final stopwatch = Stopwatch()..start();
       try {
         final result = await operation().timeout(_requestTimeout);
+        stopwatch.stop();
+        if (kDebugMode && errorContext != null) {
+          debugPrint('[SupabaseSync] OK $errorContext intento $attempt en ${stopwatch.elapsedMilliseconds}ms');
+        }
         return result;
       } on PostgrestException catch (e) {
+        stopwatch.stop();
         lastError = e;
+        if (kDebugMode && errorContext != null) {
+          debugPrint('[SupabaseSync] ERROR $errorContext intento $attempt en ${stopwatch.elapsedMilliseconds}ms -> $e');
+        }
         if (e.code == 'PGRST301' || e.code == '42501') {
           rethrow;
         }
       } on AuthException catch (e) {
+        stopwatch.stop();
         lastError = e;
+        if (kDebugMode && errorContext != null) {
+          debugPrint('[SupabaseSync] AUTH ERROR $errorContext intento $attempt en ${stopwatch.elapsedMilliseconds}ms -> $e');
+        }
         if (e.statusCode?.toString() == '401') {
           rethrow;
         }
       } on TimeoutException {
+        stopwatch.stop();
         lastError = TimeoutException('Tiempo de espera agotado');
+        if (kDebugMode && errorContext != null) {
+          debugPrint('[SupabaseSync] TIMEOUT $errorContext intento $attempt en ${stopwatch.elapsedMilliseconds}ms');
+        }
       } catch (e) {
+        stopwatch.stop();
         lastError = e;
+        if (kDebugMode && errorContext != null) {
+          debugPrint('[SupabaseSync] ERROR $errorContext intento $attempt en ${stopwatch.elapsedMilliseconds}ms -> $e');
+        }
       }
 
       if (attempt < _maxRetries) {

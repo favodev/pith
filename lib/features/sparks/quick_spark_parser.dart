@@ -95,7 +95,7 @@ class QuickSparkParser {
     }
 
     if (RegExp(r'rap|hip hop|hip-hop').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Rap 90s', icon: Icons.music_note_rounded));
+      addInterest(const ProfileInterest(label: 'Rap noventero', icon: Icons.music_note_rounded));
     }
     if (RegExp(r'vinyl|vinilo|record').hasMatch(normalized)) {
       addInterest(const ProfileInterest(label: 'Vinilo analogico', icon: Icons.album_rounded));
