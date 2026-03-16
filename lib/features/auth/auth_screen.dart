@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,6 +12,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   static const _authRedirectUrl = 'pith://auth/callback';
+  static const _requestTimeout = Duration(seconds: 12);
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -59,14 +62,18 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final auth = Supabase.instance.client.auth;
       if (_isLogin) {
-        await auth.signInWithPassword(email: email, password: password);
+        await auth
+            .signInWithPassword(email: email, password: password)
+            .timeout(_requestTimeout);
       } else {
-        final response = await auth.signUp(
-          email: email,
-          password: password,
-          emailRedirectTo: _authRedirectUrl,
-          data: {'full_name': fullName},
-        );
+        final response = await auth
+            .signUp(
+              email: email,
+              password: password,
+              emailRedirectTo: _authRedirectUrl,
+              data: {'full_name': fullName},
+            )
+            .timeout(_requestTimeout);
 
         if (response.session == null) {
           setState(() {
@@ -79,6 +86,11 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() {
         _isFeedbackError = true;
         _feedback = _friendlyAuthMessage(error.message);
+      });
+    } on TimeoutException {
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'Tiempo de espera agotado. Verifica tu conexion a internet.';
       });
     } catch (_) {
       setState(() {
@@ -118,7 +130,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
         await Supabase.instance.client.auth
-          .resetPasswordForEmail(email, redirectTo: _authRedirectUrl);
+          .resetPasswordForEmail(email, redirectTo: _authRedirectUrl)
+          .timeout(_requestTimeout);
       setState(() {
         _isFeedbackError = false;
         _feedback = 'Te enviamos un correo para restablecer tu clave.';
@@ -127,6 +140,11 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() {
         _isFeedbackError = true;
         _feedback = _friendlyAuthMessage(error.message);
+      });
+    } on TimeoutException {
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'Tiempo de espera agotado. Verifica tu conexion a internet.';
       });
     } catch (_) {
       setState(() {

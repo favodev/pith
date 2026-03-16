@@ -58,6 +58,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Configuracion local de Supabase (opcional - usar variables de entorno en produccion)
+  # Crear archivo supabase.local.json en la raiz del proyecto con formato:
+  # {"SUPABASE_URL": "https://xxx.supabase.co", "SUPABASE_ANON_KEY": "xxx"}
   assets:
     - supabase.local.json
 

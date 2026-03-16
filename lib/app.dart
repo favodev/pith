@@ -351,9 +351,18 @@ class _PithShellState extends State<PithShell>
       return 'SC';
     }
     if (words.length == 1) {
-      return words.first.substring(0, 1).toUpperCase();
+      return _firstLetter(words.first).toUpperCase();
     }
-    return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}'.toUpperCase();
+    return '${_firstLetter(words.first)}${_firstLetter(words.last)}'.toUpperCase();
+  }
+
+  String _firstLetter(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+
+    return String.fromCharCode(trimmed.runes.first);
   }
 
   BirthdayGroup _groupFromRemoteCircle(String name, int priority) {

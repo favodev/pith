@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/pith_models.dart';
@@ -59,6 +61,11 @@ class SupabaseSyncService {
   static final SupabaseSyncService instance = SupabaseSyncService._();
 
   String? _defaultCircleId;
+  String? _defaultCircleUserId;
+
+  static const _maxRetries = 3;
+  static const _retryDelayMs = 500;
+  static const _requestTimeout = Duration(seconds: 10);
 
   bool get isEnabled => SupabaseBootstrap.isConfigured;
 
@@ -79,7 +86,7 @@ class SupabaseSyncService {
 
     final circleId = await _ensureDefaultCircleId(userId);
     if (circleId == null) {
-      return;
+      throw StateError('No se pudo resolver el circulo por defecto para guardar el spark.');
     }
 
     final contactId = await _ensureContactId(
@@ -89,14 +96,19 @@ class SupabaseSyncService {
     );
 
     if (contactId == null) {
-      return;
+      throw StateError('No se pudo resolver el contacto para guardar el spark.');
     }
 
-    await _client.from('sparks').insert({
-      'contact_id': contactId,
-      'content': spark.content,
-      'icon_type': _inferIconType(spark.content),
-    });
+    await _withRetry<void>(
+      () async {
+        await _client.from('sparks').insert({
+          'contact_id': contactId,
+          'content': spark.content,
+          'icon_type': _inferIconType(spark.content),
+        });
+      },
+      errorContext: 'guardar spark',
+    );
   }
 
   Future<List<SupabaseContactRecord>> loadContactsWithSparks() async {
@@ -109,13 +121,20 @@ class SupabaseSyncService {
       return const [];
     }
 
-    final contactRows = await _client
-        .from('contacts')
-        .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+    final contactRows = await _withRetry<List<Map<String, dynamic>>>(
+      () async {
+        final rows = await _client
+            .from('contacts')
+            .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+            .eq('user_id', userId)
+            .order('created_at', ascending: false);
 
-    if (contactRows.isEmpty) {
+        return List<Map<String, dynamic>>.from(rows);
+      },
+      errorContext: 'cargar contactos',
+    );
+
+    if (contactRows == null || contactRows.isEmpty) {
       return const [];
     }
 
@@ -129,26 +148,38 @@ class SupabaseSyncService {
 
     final sparksByContact = <String, List<SupabaseSparkRecord>>{};
     if (contactIds.isNotEmpty) {
-      final sparkRows = await _client
-          .from('sparks')
-          .select('contact_id,content,created_at')
-          .inFilter('contact_id', contactIds)
-          .order('created_at', ascending: false);
+      final sparkRows = await _withRetry<List<Map<String, dynamic>>>(
+        () async {
+          final rows = await _client
+              .from('sparks')
+              .select('contact_id,content,created_at')
+              .inFilter('contact_id', contactIds)
+              .order('created_at', ascending: false);
 
-      for (final row in sparkRows) {
-        final contactId = row['contact_id'] as String?;
-        final content = row['content'] as String?;
-        final createdAtRaw = row['created_at'] as String?;
-        if (contactId == null || content == null) {
-          continue;
+          return List<Map<String, dynamic>>.from(rows);
+        },
+        errorContext: 'cargar sparks de contactos',
+      );
+
+      if (sparkRows == null) {
+        // If sparks cannot be loaded after retries, keep contacts and leave sparks empty.
+      } else {
+
+        for (final row in sparkRows) {
+          final contactId = row['contact_id'] as String?;
+          final content = row['content'] as String?;
+          final createdAtRaw = row['created_at'] as String?;
+          if (contactId == null || content == null) {
+            continue;
+          }
+
+          final createdAt = createdAtRaw == null
+              ? DateTime.now()
+              : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
+
+          final list = sparksByContact.putIfAbsent(contactId, () => <SupabaseSparkRecord>[]);
+          list.add(SupabaseSparkRecord(content: content, createdAt: createdAt));
         }
-
-        final createdAt = createdAtRaw == null
-            ? DateTime.now()
-            : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
-
-        final list = sparksByContact.putIfAbsent(contactId, () => <SupabaseSparkRecord>[]);
-        list.add(SupabaseSparkRecord(content: content, createdAt: createdAt));
       }
     }
 
@@ -216,17 +247,27 @@ class SupabaseSyncService {
             '${payload.birthday!.month.toString().padLeft(2, '0')}-'
             '${payload.birthday!.day.toString().padLeft(2, '0')}';
 
-    final row = await _client
-        .from('contacts')
-        .upsert({
-          'user_id': userId,
-          'circle_id': circleId,
-          'full_name': payload.fullName,
-          'birthday': birthdayIso,
-          'location_name': payload.locationName,
-        }, onConflict: 'user_id,full_name')
-        .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
-        .single();
+    final row = await _withRetry<Map<String, dynamic>>(
+      () async {
+        final result = await _client
+            .from('contacts')
+            .upsert({
+              'user_id': userId,
+              'circle_id': circleId,
+              'full_name': payload.fullName,
+              'birthday': birthdayIso,
+              'location_name': payload.locationName,
+            }, onConflict: 'user_id,full_name')
+            .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+            .single();
+        return Map<String, dynamic>.from(result);
+      },
+      errorContext: 'crear o actualizar contacto',
+    );
+
+    if (row == null) {
+      return null;
+    }
 
     final id = row['id'] as String?;
     final fullName = row['full_name'] as String?;
@@ -281,18 +322,28 @@ class SupabaseSyncService {
             '${payload.birthday!.month.toString().padLeft(2, '0')}-'
             '${payload.birthday!.day.toString().padLeft(2, '0')}';
 
-    final row = await _client
-        .from('contacts')
-        .update({
-          'circle_id': circleId,
-          'full_name': payload.fullName,
-          'birthday': birthdayIso,
-          'location_name': payload.locationName,
-        })
-        .eq('id', contactId)
-        .eq('user_id', userId)
-        .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
-        .single();
+    final row = await _withRetry<Map<String, dynamic>>(
+      () async {
+        final result = await _client
+            .from('contacts')
+            .update({
+              'circle_id': circleId,
+              'full_name': payload.fullName,
+              'birthday': birthdayIso,
+              'location_name': payload.locationName,
+            })
+            .eq('id', contactId)
+            .eq('user_id', userId)
+            .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+            .single();
+        return Map<String, dynamic>.from(result);
+      },
+      errorContext: 'actualizar contacto',
+    );
+
+    if (row == null) {
+      return null;
+    }
 
     final id = row['id'] as String?;
     final fullName = row['full_name'] as String?;
@@ -327,11 +378,16 @@ class SupabaseSyncService {
       throw StateError('User session is required to delete contacts.');
     }
 
-    await _client
-        .from('contacts')
-        .delete()
-        .eq('user_id', userId)
-        .eq('full_name', fullName);
+    await _withRetry<void>(
+      () async {
+        await _client
+            .from('contacts')
+            .delete()
+            .eq('user_id', userId)
+            .eq('full_name', fullName);
+      },
+      errorContext: 'eliminar contacto',
+    );
   }
 
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
@@ -346,13 +402,19 @@ class SupabaseSyncService {
       return const {};
     }
 
-    final contacts = await _client
-        .from('contacts')
-        .select('id,full_name')
-        .eq('user_id', userId)
-        .inFilter('full_name', contactNames.toList());
+    final contacts = await _withRetry<List<Map<String, dynamic>>>(
+      () async {
+        final rows = await _client
+            .from('contacts')
+            .select('id,full_name')
+            .eq('user_id', userId)
+            .inFilter('full_name', contactNames.toList());
+        return List<Map<String, dynamic>>.from(rows);
+      },
+      errorContext: 'resolver ids de contactos para sparks',
+    );
 
-    if (contacts.isEmpty) {
+    if (contacts == null || contacts.isEmpty) {
       return const {};
     }
 
@@ -369,11 +431,21 @@ class SupabaseSyncService {
       return const {};
     }
 
-    final sparkRows = await _client
-        .from('sparks')
-        .select('contact_id,content,created_at')
-        .inFilter('contact_id', idToName.keys.toList())
-        .order('created_at', ascending: false);
+    final sparkRows = await _withRetry<List<Map<String, dynamic>>>(
+      () async {
+        final rows = await _client
+            .from('sparks')
+            .select('contact_id,content,created_at')
+            .inFilter('contact_id', idToName.keys.toList())
+            .order('created_at', ascending: false);
+        return List<Map<String, dynamic>>.from(rows);
+      },
+      errorContext: 'cargar sparks por contacto',
+    );
+
+    if (sparkRows == null) {
+      return const {};
+    }
 
     final result = <String, List<QuickSparkEntry>>{};
     for (final row in sparkRows) {
@@ -412,34 +484,58 @@ class SupabaseSyncService {
   }
 
   Future<String?> _ensureDefaultCircleId(String userId) async {
-    if (_defaultCircleId != null) {
+    if (_defaultCircleId != null && _defaultCircleUserId == userId) {
       return _defaultCircleId;
     }
 
-    final existing = await _client
-        .from('circles')
-        .select('id')
-        .eq('user_id', userId)
-        .order('priority_level', ascending: true)
-        .limit(1);
+    if (_defaultCircleUserId != userId) {
+      _defaultCircleId = null;
+      _defaultCircleUserId = userId;
+    }
 
-    if (existing.isNotEmpty) {
-      _defaultCircleId = existing.first['id'] as String;
+    final existing = await _withRetry<List<Map<String, dynamic>>>(
+      () async {
+        final rows = await _client
+            .from('circles')
+            .select('id')
+            .eq('user_id', userId)
+            .order('priority_level', ascending: true)
+            .limit(1);
+        return List<Map<String, dynamic>>.from(rows);
+      },
+      errorContext: 'obtener circulo por defecto',
+    );
+
+    if (existing != null && existing.isNotEmpty) {
+      final cachedId = _readString(existing.first, 'id');
+      if (cachedId != null) {
+        _defaultCircleId = cachedId;
+      }
       return _defaultCircleId;
     }
 
-    final inserted = await _client
-        .from('circles')
-        .insert({
-          'user_id': userId,
-          'name': 'VIP',
-          'priority_level': 1,
-          'color_hex': '#F4C025',
-        })
-        .select('id')
-        .single();
+    final inserted = await _withRetry<Map<String, dynamic>>(
+      () async {
+        final result = await _client
+            .from('circles')
+            .insert({
+              'user_id': userId,
+              'name': 'VIP',
+              'priority_level': 1,
+              'color_hex': '#F4C025',
+            })
+            .select('id')
+            .single();
+        return Map<String, dynamic>.from(result);
+      },
+      errorContext: 'crear circulo por defecto',
+    );
 
-    _defaultCircleId = inserted['id'] as String;
+    if (inserted == null) {
+      return null;
+    }
+
+    _defaultCircleId = _readString(inserted, 'id');
     return _defaultCircleId;
   }
 
@@ -449,29 +545,45 @@ class SupabaseSyncService {
     required int priorityLevel,
     required String colorHex,
   }) async {
-    final existing = await _client
-        .from('circles')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('name', name)
-        .limit(1);
+    final existing = await _withRetry<List<Map<String, dynamic>>>(
+      () async {
+        final rows = await _client
+            .from('circles')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('name', name)
+            .limit(1);
+        return List<Map<String, dynamic>>.from(rows);
+      },
+      errorContext: 'buscar circulo por nombre',
+    );
 
-    if (existing.isNotEmpty) {
-      return existing.first['id'] as String;
+    if (existing != null && existing.isNotEmpty) {
+      return _readString(existing.first, 'id');
     }
 
-    final inserted = await _client
-        .from('circles')
-        .insert({
-          'user_id': userId,
-          'name': name,
-          'priority_level': priorityLevel,
-          'color_hex': colorHex,
-        })
-        .select('id')
-        .single();
+    final inserted = await _withRetry<Map<String, dynamic>>(
+      () async {
+        final result = await _client
+            .from('circles')
+            .insert({
+              'user_id': userId,
+              'name': name,
+              'priority_level': priorityLevel,
+              'color_hex': colorHex,
+            })
+            .select('id')
+            .single();
+        return Map<String, dynamic>.from(result);
+      },
+      errorContext: 'crear circulo',
+    );
 
-    return inserted['id'] as String;
+    if (inserted == null) {
+      return null;
+    }
+
+    return _readString(inserted, 'id');
   }
 
   Future<String?> _ensureContactId({
@@ -479,29 +591,59 @@ class SupabaseSyncService {
     required String circleId,
     required ContactProfile profile,
   }) async {
-    final existing = await _client
-        .from('contacts')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('full_name', profile.name)
-        .limit(1);
+    final existing = await _withRetry<List<Map<String, dynamic>>>(
+      () async {
+        final rows = await _client
+            .from('contacts')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('full_name', profile.name)
+            .limit(1);
+        return List<Map<String, dynamic>>.from(rows);
+      },
+      errorContext: 'buscar contacto para spark',
+    );
 
-    if (existing.isNotEmpty) {
-      return existing.first['id'] as String;
+    if (existing != null && existing.isNotEmpty) {
+      return _readString(existing.first, 'id');
     }
 
-    final inserted = await _client
-        .from('contacts')
-        .insert({
-          'user_id': userId,
-          'circle_id': circleId,
-          'full_name': profile.name,
-          'location_name': _inferLocation(profile.subtitle),
-        })
-        .select('id')
-        .single();
+    final inserted = await _withRetry<Map<String, dynamic>>(
+      () async {
+        final result = await _client
+            .from('contacts')
+            .insert({
+              'user_id': userId,
+              'circle_id': circleId,
+              'full_name': profile.name,
+              'location_name': _inferLocation(profile.subtitle),
+            })
+            .select('id')
+            .single();
+        return Map<String, dynamic>.from(result);
+      },
+      errorContext: 'crear contacto para spark',
+    );
 
-    return inserted['id'] as String;
+    if (inserted == null) {
+      return null;
+    }
+
+    return _readString(inserted, 'id');
+  }
+
+  String? _readString(Map<String, dynamic> row, String key) {
+    final raw = row[key];
+    if (raw == null) {
+      return null;
+    }
+
+    final text = raw.toString().trim();
+    if (text.isEmpty) {
+      return null;
+    }
+
+    return text;
   }
 
   String _inferLocation(String subtitle) {
@@ -559,4 +701,46 @@ class SupabaseSyncService {
     }
     return 'note';
   }
+
+  Future<T?> _withRetry<T>(Future<T?> Function() operation, {String? errorContext}) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= _maxRetries; attempt++) {
+      try {
+        final result = await operation().timeout(_requestTimeout);
+        return result;
+      } on PostgrestException catch (e) {
+        lastError = e;
+        if (e.code == 'PGRST301' || e.code == '42501') {
+          rethrow;
+        }
+      } on AuthException catch (e) {
+        lastError = e;
+        if (e.statusCode?.toString() == '401') {
+          rethrow;
+        }
+      } on TimeoutException {
+        lastError = TimeoutException('Tiempo de espera agotado');
+      } catch (e) {
+        lastError = e;
+      }
+
+      if (attempt < _maxRetries) {
+        await Future.delayed(Duration(milliseconds: _retryDelayMs * attempt));
+      }
+    }
+    throw SupabaseSyncException(
+      'Operation failed after $_maxRetries attempts${errorContext != null ? ': $errorContext' : ''}',
+      lastError,
+    );
+  }
+}
+
+class SupabaseSyncException implements Exception {
+  const SupabaseSyncException(this.message, [this.cause]);
+
+  final String message;
+  final Object? cause;
+
+  @override
+  String toString() => 'SupabaseSyncException: $message${cause != null ? ' (caused by: $cause)' : ''}';
 }

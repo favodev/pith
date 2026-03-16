@@ -23,16 +23,19 @@ class QuickSparkParser {
       return null;
     }
 
-    final mentionMatch = RegExp(r'^@([^:]+):').firstMatch(trimmed);
+    final mentionMatch = RegExp(r'^@([^:]+?)\s*:').firstMatch(trimmed);
     if (mentionMatch != null) {
       final mention = mentionMatch.group(1)?.trim().toLowerCase() ?? '';
+      if (mention.isEmpty) {
+        return null;
+      }
       final allowed = [profile.name.toLowerCase(), profile.initials.toLowerCase()];
       if (!allowed.any((entry) => entry.contains(mention) || mention.contains(entry))) {
         return null;
       }
     }
 
-    final rawContent = trimmed.replaceFirst(RegExp(r'^@[^:]+:\s*'), '').trim();
+    final rawContent = trimmed.replaceFirst(RegExp(r'^@[^:]+?\s*:\s*'), '').trim();
     final content = rawContent.isEmpty ? trimmed : rawContent;
 
     return QuickSparkParseResult(

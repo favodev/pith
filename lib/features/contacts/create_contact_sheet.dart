@@ -220,7 +220,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                   child: Text(
                     _birthday == null
                         ? 'Sin cumpleanos'
-                        : '${_birthday!.day}/${_birthday!.month}/${_birthday!.year}',
+                        : _formatBirthdayLabel(_birthday!),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFFE8DFC5),
                         ),
@@ -271,5 +271,24 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
         borderSide: BorderSide(color: Color(0xFFF4C025)),
       ),
     );
+  }
+
+  String _formatBirthdayLabel(DateTime date) {
+    const months = [
+      'ENE',
+      'FEB',
+      'MAR',
+      'ABR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AGO',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DIC',
+    ];
+
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }
