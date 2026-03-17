@@ -169,7 +169,7 @@ class SupabaseSyncService {
 
           return List<Map<String, dynamic>>.from(rows);
         },
-        errorContext: 'cargar sparks de contactos',
+        errorContext: 'cargar notas de contactos',
       );
 
       if (sparkRows == null) {
@@ -430,7 +430,7 @@ class SupabaseSyncService {
             .inFilter('full_name', contactNames.toList());
         return List<Map<String, dynamic>>.from(rows);
       },
-      errorContext: 'resolver ids de contactos para sparks',
+      errorContext: 'resolver ids de contactos para notas',
     );
 
     if (contacts == null || contacts.isEmpty) {
@@ -459,7 +459,7 @@ class SupabaseSyncService {
             .order('created_at', ascending: false);
         return List<Map<String, dynamic>>.from(rows);
       },
-      errorContext: 'cargar sparks por contacto',
+      errorContext: 'cargar notas por contacto',
     );
 
     if (sparkRows == null) {
@@ -639,7 +639,7 @@ class SupabaseSyncService {
             .limit(1);
         return List<Map<String, dynamic>>.from(rows);
       },
-      errorContext: 'buscar contacto para spark',
+      errorContext: 'buscar contacto para nota',
     );
 
     if (existing != null && existing.isNotEmpty) {
@@ -664,7 +664,7 @@ class SupabaseSyncService {
             .single();
         return Map<String, dynamic>.from(result);
       },
-      errorContext: 'crear contacto para spark',
+      errorContext: 'crear contacto para nota',
     );
 
     if (inserted == null) {
