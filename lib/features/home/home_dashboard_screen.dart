@@ -378,7 +378,11 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
   }
 
   void _submit() {
-    widget.onSubmitted(_controller.text);
+    final value = _controller.text.trim();
+    if (value.isEmpty) {
+      return;
+    }
+    widget.onSubmitted(value);
     _controller.clear();
   }
 
@@ -396,23 +400,13 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
         onSubmitted: (_) => _submit(),
         textInputAction: TextInputAction.done,
         style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w500),
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.terminal_rounded, color: Color(0xFFF4C025)),
-          hintText: '@Julian: le gusta el rap de los 90',
-          suffixIcon: Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                'ENVIAR',
-                style: TextStyle(
-                  color: Color(0xFF8392AD),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.3,
-                ),
-              ),
-            ),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFFF4C025)),
+          hintText: 'Escribe una nota. Opcional: @Julian: le gusta el rap noventero',
+          suffixIcon: IconButton(
+            onPressed: _submit,
+            icon: const Icon(Icons.send_rounded, color: Color(0xFF8392AD)),
+            tooltip: 'Guardar nota',
           ),
         ),
       ),

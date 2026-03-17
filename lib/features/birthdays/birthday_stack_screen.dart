@@ -589,7 +589,7 @@ class BirthdayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isVip = contact.priority == BirthdayPriority.vip;
+    final isHighlighted = contact.priority == BirthdayPriority.highlighted;
 
     return AspectRatio(
       aspectRatio: 0.82 / contact.heightFactor,
@@ -597,13 +597,13 @@ class BirthdayCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(34),
           border: Border.all(
-            color: isVip
+            color: isHighlighted
                 ? const Color(0x80F4C025)
                 : Colors.white.withValues(alpha: 0.05),
-            width: isVip ? 2 : 1,
+            width: isHighlighted ? 2 : 1,
           ),
-          color: contact.accent.withValues(alpha: isVip ? 0.36 : 0.24),
-          boxShadow: isVip
+          color: contact.accent.withValues(alpha: isHighlighted ? 0.36 : 0.24),
+          boxShadow: isHighlighted
               ? const [
                   BoxShadow(
                     color: Color(0x33F4C025),
@@ -624,7 +624,7 @@ class BirthdayCard extends StatelessWidget {
                 height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: isVip ? 0.1 : 0.06),
+                  color: Colors.white.withValues(alpha: isHighlighted ? 0.1 : 0.06),
                 ),
               ),
             ),
@@ -648,7 +648,7 @@ class BirthdayCard extends StatelessWidget {
                         height: 84,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: isVip ? 0.18 : 0.1),
+                          color: Colors.white.withValues(alpha: isHighlighted ? 0.18 : 0.1),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.18),
                           ),
@@ -657,7 +657,7 @@ class BirthdayCard extends StatelessWidget {
                         child: Text(
                           contact.initials,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: isVip ? 0.95 : 0.72),
+                            color: Colors.white.withValues(alpha: isHighlighted ? 0.95 : 0.72),
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                           ),
@@ -678,7 +678,7 @@ class BirthdayCard extends StatelessWidget {
                     contact.name,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: isVip
+                      color: isHighlighted
                           ? const Color(0xFFF4EBD0)
                           : const Color(0xFFE2E5EA),
                       height: 1.05,

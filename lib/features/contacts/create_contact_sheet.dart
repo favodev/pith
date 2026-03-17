@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/circle_labels.dart';
+import '../../core/utils/date_labels.dart';
+
 class CreateContactInput {
   const CreateContactInput({
     required this.fullName,
@@ -89,7 +92,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
 
-  String _selectedCircle = 'VIP';
+  String _selectedCircle = CircleLabels.acquaintances;
   DateTime? _birthday;
 
   @override
@@ -99,7 +102,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
     if (initial != null) {
       _nameController.text = initial.fullName;
       _locationController.text = initial.locationName;
-      _selectedCircle = initial.circleName;
+      _selectedCircle = CircleLabels.normalize(initial.circleName);
       _birthday = initial.birthday;
     }
   }
@@ -199,12 +202,9 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                   dropdownColor: const Color(0xFF132033),
                   iconEnabledColor: const Color(0xFFF4EBD0),
                   style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w700),
-                  items: const [
-                    DropdownMenuItem(value: 'VIP', child: Text('VIP')),
-                    DropdownMenuItem(value: 'Familia', child: Text('Familia')),
-                    DropdownMenuItem(value: 'Circulo cercano', child: Text('Circulo cercano')),
-                    DropdownMenuItem(value: 'Todos', child: Text('Todos')),
-                  ],
+                  items: CircleLabels.values
+                      .map((label) => DropdownMenuItem(value: label, child: Text(label)))
+                      .toList(),
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => _selectedCircle = value);
@@ -220,7 +220,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                   child: Text(
                     _birthday == null
                         ? 'Sin cumpleanos'
-                        : _formatBirthdayLabel(_birthday!),
+                      : DateLabels.monthDayYear(_birthday!),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFFE8DFC5),
                         ),
@@ -271,24 +271,5 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
         borderSide: BorderSide(color: Color(0xFFF4C025)),
       ),
     );
-  }
-
-  String _formatBirthdayLabel(DateTime date) {
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }

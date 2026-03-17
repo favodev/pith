@@ -152,7 +152,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Sugerencias basadas en tus sparks e intereses privados',
+                  'Sugerencias basadas en tus notas e intereses privados',
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     color: const Color(0x889AA8C0),
@@ -166,11 +166,19 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ],
                 const SizedBox(height: 72),
                 Text(
-                  'SPARKS RAPIDOS',
+                  'NOTAS Y RECUERDOS',
                   textAlign: TextAlign.center,
                   style: textTheme.labelMedium?.copyWith(
                     color: const Color(0x669AA8C0),
                     letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Agrega una nota nueva para ${profile.name} desde aqui.',
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0x889AA8C0),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -339,7 +347,11 @@ class _SparkComposerState extends State<_SparkComposer> {
   }
 
   void _submit() {
-    widget.onSubmitted(_controller.text);
+    final value = _controller.text.trim();
+    if (value.isEmpty) {
+      return;
+    }
+    widget.onSubmitted(value);
     _controller.clear();
   }
 
@@ -352,37 +364,40 @@ class _SparkComposerState extends State<_SparkComposer> {
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      child: TextField(
-        controller: _controller,
-        onSubmitted: (_) => _submit(),
-        textInputAction: TextInputAction.done,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          fillColor: Colors.transparent,
-          filled: false,
-          prefixIcon: const Icon(Icons.terminal_rounded, color: Color(0x88F4C025)),
-          hintText: 'Agrega un nuevo spark para ${widget.profileName}...',
-          hintStyle: const TextStyle(color: Color(0x449AA8C0)),
-          suffixIcon: const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                'CMD + K',
-                style: TextStyle(
-                  color: Color(0x449AA8C0),
-                  fontSize: 10,
-                  letterSpacing: 1.2,
-                ),
+      child: Column(
+        children: [
+          TextField(
+            controller: _controller,
+            onSubmitted: (_) => _submit(),
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              fillColor: Colors.transparent,
+              filled: false,
+              prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0x88F4C025)),
+              hintText: 'Agregar nota para ${widget.profileName}...',
+              hintStyle: const TextStyle(color: Color(0x449AA8C0)),
+              suffixIcon: IconButton(
+                onPressed: _submit,
+                icon: const Icon(Icons.send_rounded, color: Color(0x88F4C025)),
+                tooltip: 'Guardar nota',
               ),
             ),
+            style: const TextStyle(
+              color: Color(0xFFF4EBD0),
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.2,
+            ),
           ),
-        ),
-        style: const TextStyle(
-          color: Color(0xFFF4EBD0),
-          fontWeight: FontWeight.w400,
-          letterSpacing: 0.2,
-        ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonalIcon(
+              onPressed: _submit,
+              icon: const Icon(Icons.add_comment_rounded),
+              label: const Text('Agregar nota'),
+            ),
+          ),
+        ],
       ),
     );
   }

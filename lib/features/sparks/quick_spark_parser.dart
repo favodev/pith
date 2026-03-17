@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models/pith_models.dart';
+import '../../core/utils/date_labels.dart';
 
 class QuickSparkParseResult {
   const QuickSparkParseResult({
@@ -40,31 +41,12 @@ class QuickSparkParser {
 
     return QuickSparkParseResult(
       spark: QuickSparkEntry(
-        dateLabel: _formatDate(now ?? DateTime.now()),
+        dateLabel: DateLabels.monthDayYear(now ?? DateTime.now()),
         content: _normalizeSentence(content),
         highlighted: true,
       ),
       inferredInterests: _inferInterests(content, profile),
     );
-  }
-
-  static String _formatDate(DateTime date) {
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   static String _normalizeSentence(String content) {

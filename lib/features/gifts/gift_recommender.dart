@@ -39,7 +39,7 @@ class GiftRecommender {
     if (_hasAny(source, ['garden', 'flowers', 'flor'])) {
       add(
         'Arreglo floral curado en tonos crema',
-        'Alineado con sparks previos sobre gusto floral y paletas calidas.',
+        'Alineado con notas previas sobre gusto floral y paletas calidas.',
       );
     }
 
@@ -53,7 +53,7 @@ class GiftRecommender {
     if (_hasAny(source, ['chocolate', 'mezcal'])) {
       add(
         'Maridaje artesanal de chocolate oscuro y mezcal',
-        'Hace referencia directa a sparks guardados sobre preferencias de sabor.',
+        'Hace referencia directa a notas guardadas sobre preferencias de sabor.',
       );
     }
 

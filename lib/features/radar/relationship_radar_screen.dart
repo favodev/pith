@@ -9,10 +9,12 @@ class RelationshipRadarScreen extends StatelessWidget {
     super.key,
     required this.stories,
     required this.feedCards,
+    this.onTapCardAction,
   });
 
   final List<RadarStory> stories;
   final List<RadarFeedCard> feedCards;
+  final ValueChanged<RadarFeedCard>? onTapCardAction;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +44,7 @@ class RelationshipRadarScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       for (final card in feedCards) ...[
-                        _FeedCard(card: card),
+                        _FeedCard(card: card, onTapAction: onTapCardAction),
                         const SizedBox(height: 18),
                       ],
                       const SizedBox(height: 100),
@@ -166,9 +168,10 @@ class _StoryChip extends StatelessWidget {
 }
 
 class _FeedCard extends StatelessWidget {
-  const _FeedCard({required this.card});
+  const _FeedCard({required this.card, this.onTapAction});
 
   final RadarFeedCard card;
+  final ValueChanged<RadarFeedCard>? onTapAction;
 
   @override
   Widget build(BuildContext context) {
@@ -251,7 +254,7 @@ class _FeedCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     FilledButton(
-                      onPressed: () {},
+                      onPressed: onTapAction == null ? null : () => onTapAction!(card),
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFF4C025),
                         foregroundColor: const Color(0xFF161104),

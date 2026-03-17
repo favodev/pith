@@ -4,9 +4,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/constants/circle_labels.dart';
 import 'core/models/pith_models.dart';
 import 'core/services/haptics_service.dart';
 import 'core/supabase/supabase_bootstrap.dart';
+import 'core/utils/date_labels.dart';
 import 'core/theme/pith_theme.dart';
 import 'features/auth/auth_screen.dart';
 import 'features/auth/supabase_required_screen.dart';
@@ -71,6 +73,7 @@ class _PithShellState extends State<PithShell>
   int _currentIndex = 0;
   bool _isFanOutVisible = false;
   bool _isSearchVisible = false;
+  int _pendingAsyncOps = 0;
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   late Map<String, ContactProfile> _profiles;
@@ -81,28 +84,6 @@ class _PithShellState extends State<PithShell>
   int _profileReturnIndex = 0;
   late final AnimationController _fanOutController;
 
-
-  static const _radarStories = [
-    RadarStory(label: 'Tendencia', highlighted: true, accent: Color(0xFFF4C025)),
-    RadarStory(label: 'Favoritos', highlighted: false, accent: Color(0xFF8C9AB2)),
-    RadarStory(label: 'Amigos', highlighted: false, accent: Color(0xFF7590C0)),
-    RadarStory(label: 'Familia', highlighted: false, accent: Color(0xFFBA8B66)),
-  ];
-
-  static const _radarFeedCards = [
-    RadarFeedCard(
-      title: 'Momentos del fin de semana',
-      description: 'Explorando las luces de la ciudad con el grupo.',
-      actionLabel: 'Ver',
-      gradient: [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
-    ),
-    RadarFeedCard(
-      title: 'Lanzamiento de nuevo proyecto',
-      description: 'Por fin compartiendo en lo que he estado trabajando.',
-      actionLabel: 'Leer',
-      gradient: [Color(0xFF7F6652), Color(0xFF201716), Color(0xFF42506B)],
-    ),
-  ];
 
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Inicio', icon: Icons.home_rounded),
@@ -124,7 +105,7 @@ class _PithShellState extends State<PithShell>
       duration: const Duration(milliseconds: 820),
     );
 
-    unawaited(_hydrateFromSupabase());
+    _hydrateFromSupabase();
   }
 
   Future<void> _hydrateFromSupabase() async {
@@ -133,7 +114,9 @@ class _PithShellState extends State<PithShell>
     }
 
     try {
-      final contacts = await SupabaseSyncService.instance.loadContactsWithSparks();
+      final contacts = await _runBusy(
+        () => SupabaseSyncService.instance.loadContactsWithSparks(),
+      );
 
       if (!mounted || contacts.isEmpty) {
         return;
@@ -159,6 +142,28 @@ class _PithShellState extends State<PithShell>
       });
     } catch (_) {
       // Keep local fallback if sync fails.
+    }
+  }
+
+  bool get _isBusy => _pendingAsyncOps > 0;
+
+  Future<T> _runBusy<T>(Future<T> Function() action) async {
+    if (mounted) {
+      setState(() => _pendingAsyncOps++);
+    } else {
+      _pendingAsyncOps++;
+    }
+
+    try {
+      return await action();
+    } finally {
+      if (!mounted) {
+        _pendingAsyncOps = (_pendingAsyncOps - 1).clamp(0, 9999).toInt();
+      } else {
+        setState(() {
+          _pendingAsyncOps = (_pendingAsyncOps - 1).clamp(0, 9999).toInt();
+        });
+      }
     }
   }
 
@@ -250,7 +255,7 @@ class _PithShellState extends State<PithShell>
   }
 
   BirthdayContact _birthdayFromRemoteContact(SupabaseContactRecord contact) {
-    final group = _groupFromRemoteCircle(contact.circleName, contact.circlePriority);
+    final group = _groupFromRemoteCircle(contact.circleName);
 
     return BirthdayContact(
       name: contact.fullName,
@@ -259,7 +264,7 @@ class _PithShellState extends State<PithShell>
       subtitle: _birthdaySubtitle(contact.birthday),
       initials: _initialsFromName(contact.fullName),
       accent: _colorFromHex(contact.circleColorHex),
-      priority: contact.circlePriority <= 1 ? BirthdayPriority.vip : BirthdayPriority.standard,
+      priority: contact.circlePriority <= 1 ? BirthdayPriority.highlighted : BirthdayPriority.standard,
       group: group,
       heightFactor: 0.92 + ((contact.fullName.length % 5) * 0.1),
       actionIcon: contact.circlePriority <= 2 ? Icons.card_giftcard_rounded : Icons.auto_awesome_rounded,
@@ -331,7 +336,7 @@ class _PithShellState extends State<PithShell>
       return const [
         QuickSparkEntry(
           dateLabel: 'HOY',
-          content: 'Listo para capturar tu primer spark.',
+          content: 'Listo para capturar tu primera nota.',
           highlighted: true,
         ),
       ];
@@ -370,12 +375,12 @@ class _PithShellState extends State<PithShell>
     return String.fromCharCode(trimmed.runes.first);
   }
 
-  BirthdayGroup _groupFromRemoteCircle(String name, int priority) {
-    final lowered = name.toLowerCase();
-    if (lowered.contains('family') || lowered.contains('familia')) {
+  BirthdayGroup _groupFromRemoteCircle(String name) {
+    final normalized = CircleLabels.normalize(name).toLowerCase();
+    if (normalized == CircleLabels.family.toLowerCase()) {
       return BirthdayGroup.family;
     }
-    if (priority <= 2 || lowered.contains('inner') || lowered.contains('circulo') || lowered.contains('vip')) {
+    if (normalized == CircleLabels.friends.toLowerCase()) {
       return BirthdayGroup.innerCircle;
     }
     return BirthdayGroup.allContacts;
@@ -400,21 +405,7 @@ class _PithShellState extends State<PithShell>
     if (birthday == null) {
       return 'Sin cumpleanos';
     }
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-    return '${months[birthday.month - 1]} ${birthday.day}';
+    return DateLabels.monthDay(birthday);
   }
 
   Color _colorFromHex(String value) {
@@ -432,22 +423,7 @@ class _PithShellState extends State<PithShell>
   }
 
   String _formatDate(DateTime date) {
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return DateLabels.monthDayYear(date);
   }
 
   DeckSummary get _deckSummary {
@@ -488,12 +464,81 @@ class _PithShellState extends State<PithShell>
     return items;
   }
 
+  List<RadarStory> get _radarStories {
+    final hasFriends = _birthdayContacts.any(
+      (c) => CircleLabels.normalize(c.relation) == CircleLabels.friends,
+    );
+    final hasFamily = _birthdayContacts.any(
+      (c) => c.group == BirthdayGroup.family || c.relation.toLowerCase().contains('familia'),
+    );
+
+    return [
+      const RadarStory(label: 'Tendencia', highlighted: true, accent: Color(0xFFF4C025)),
+      RadarStory(
+        label: 'Amigos',
+        highlighted: hasFriends,
+        accent: hasFriends ? const Color(0xFFF4C025) : const Color(0xFF8C9AB2),
+      ),
+      RadarStory(
+        label: 'Contactos',
+        highlighted: _profiles.length >= 3,
+        accent: const Color(0xFF7590C0),
+      ),
+      RadarStory(
+        label: 'Familia',
+        highlighted: hasFamily,
+        accent: const Color(0xFFBA8B66),
+      ),
+    ];
+  }
+
+  List<RadarFeedCard> get _radarFeedCards {
+    final cards = <RadarFeedCard>[];
+
+    if (_todayBirthdayContacts.isNotEmpty) {
+      final first = _todayBirthdayContacts.first;
+      cards.add(
+        RadarFeedCard(
+          title: 'Cumpleanos activo: ${first.name}',
+          description: 'Revisa notas y recuerdos para escribir un saludo con contexto.',
+          actionLabel: 'Abrir perfil',
+          gradient: const [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
+        ),
+      );
+    }
+
+    final profile = _activeProfile;
+    if (profile.sparks.isNotEmpty) {
+      cards.add(
+        RadarFeedCard(
+          title: 'Ultima nota de ${profile.name}',
+          description: profile.sparks.first.content,
+          actionLabel: 'Ver detalles',
+          gradient: const [Color(0xFF7F6652), Color(0xFF201716), Color(0xFF42506B)],
+        ),
+      );
+    }
+
+    if (cards.isEmpty) {
+      cards.add(
+        const RadarFeedCard(
+          title: 'Tu radar aun no tiene actividad',
+          description: 'Agrega contactos y notas para activar recomendaciones y contexto.',
+          actionLabel: 'Comenzar',
+          gradient: [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
+        ),
+      );
+    }
+
+    return cards;
+  }
+
   ContactProfile _resolveProfileForSpark(String value) {
     if (_profiles.isEmpty) {
       return _emptyProfile;
     }
 
-    final match = RegExp(r'^@([^:]+):').firstMatch(value.trim());
+    final match = RegExp(r'^@([^:]+?)\s*:').firstMatch(value.trim());
     if (match == null) {
       return _activeProfile;
     }
@@ -577,6 +622,20 @@ class _PithShellState extends State<PithShell>
     });
   }
 
+  void _handleRadarAction(RadarFeedCard card) {
+    if (card.title.toLowerCase().contains('cumpleanos')) {
+      _openBirthdayStack();
+      return;
+    }
+
+    if (_activeProfileName.isNotEmpty && _profiles.containsKey(_activeProfileName)) {
+      setState(() {
+        _profileReturnIndex = _currentIndex;
+        _currentIndex = 3;
+      });
+    }
+  }
+
   void _onNavTap(int index) {
     if (index == 3) {
       _openProfileFromTab();
@@ -632,6 +691,7 @@ class _PithShellState extends State<PithShell>
                   width: double.infinity,
                   child: FilledButton.tonal(
                     onPressed: () async {
+                      SupabaseSyncService.instance.clearSessionCache();
                       await Supabase.instance.client.auth.signOut();
                       if (context.mounted) {
                         Navigator.of(context).pop();
@@ -657,16 +717,26 @@ class _PithShellState extends State<PithShell>
     final mapping = _circleMapping(input.circleName);
     SupabaseContactRecord? record;
     try {
-      record = await SupabaseSyncService.instance.createOrUpdateContact(
-        CreateContactPayload(
-          fullName: input.fullName,
-          circleName: input.circleName,
-          circlePriority: mapping.priority,
-          circleColorHex: mapping.colorHex,
-          locationName: input.locationName,
-          birthday: input.birthday,
+      record = await _runBusy(
+        () => SupabaseSyncService.instance.createOrUpdateContact(
+          CreateContactPayload(
+            fullName: input.fullName,
+            circleName: input.circleName,
+            circlePriority: mapping.priority,
+            circleColorHex: mapping.colorHex,
+            locationName: input.locationName,
+            birthday: input.birthday,
+          ),
         ),
       );
+    } on SupabaseSyncException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sparkFeedback = 'No se pudo guardar el contacto. ${error.message}';
+      });
+      return;
     } catch (_) {
       record = null;
     }
@@ -707,11 +777,11 @@ class _PithShellState extends State<PithShell>
   }
 
   _CircleMapping _circleMapping(String circle) {
-    return switch (circle) {
-      'VIP' => const _CircleMapping(priority: 1, colorHex: '#F4C025'),
-      'Family' || 'Familia' => const _CircleMapping(priority: 1, colorHex: '#DEB06D'),
-      'Inner Circle' || 'Circulo cercano' => const _CircleMapping(priority: 2, colorHex: '#7F6688'),
-      'All Contacts' || 'Todos' => const _CircleMapping(priority: 3, colorHex: '#6E7789'),
+    return switch (CircleLabels.normalize(circle)) {
+      CircleLabels.family => const _CircleMapping(priority: 1, colorHex: '#DEB06D'),
+      CircleLabels.friends => const _CircleMapping(priority: 2, colorHex: '#7F6688'),
+      CircleLabels.work => const _CircleMapping(priority: 3, colorHex: '#4A84C6'),
+      CircleLabels.acquaintances => const _CircleMapping(priority: 4, colorHex: '#6E7789'),
       _ => const _CircleMapping(priority: 3, colorHex: '#6E7789'),
     };
   }
@@ -809,17 +879,27 @@ class _PithShellState extends State<PithShell>
 
     SupabaseContactRecord? updated;
     try {
-      updated = await SupabaseSyncService.instance.updateContactById(
-        contactId: existing.id,
-        payload: CreateContactPayload(
-          fullName: input.fullName,
-          circleName: input.circleName,
-          circlePriority: mapping.priority,
-          circleColorHex: mapping.colorHex,
-          locationName: input.locationName,
-          birthday: input.birthday,
+      updated = await _runBusy(
+        () => SupabaseSyncService.instance.updateContactById(
+          contactId: existing.id,
+          payload: CreateContactPayload(
+            fullName: input.fullName,
+            circleName: input.circleName,
+            circlePriority: mapping.priority,
+            circleColorHex: mapping.colorHex,
+            locationName: input.locationName,
+            birthday: input.birthday,
+          ),
         ),
       );
+    } on SupabaseSyncException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sparkFeedback = 'No se pudo actualizar el contacto. ${error.message}';
+      });
+      return;
     } catch (_) {
       updated = null;
     }
@@ -867,7 +947,7 @@ class _PithShellState extends State<PithShell>
       builder: (context) {
         return AlertDialog(
           title: const Text('Eliminar contacto?'),
-          content: Text('Esto eliminara permanentemente a $name y sus sparks en Supabase.'),
+          content: Text('Esto eliminara permanentemente a $name y sus notas en Supabase.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -890,7 +970,15 @@ class _PithShellState extends State<PithShell>
 
   Future<void> _deleteContact(String name) async {
     try {
-      await SupabaseSyncService.instance.deleteContactByName(name);
+      await _runBusy(() => SupabaseSyncService.instance.deleteContactByName(name));
+    } on SupabaseSyncException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sparkFeedback = 'No se pudo eliminar el contacto. ${error.message}';
+      });
+      return;
     } catch (_) {
       if (!mounted) {
         return;
@@ -919,6 +1007,14 @@ class _PithShellState extends State<PithShell>
   }
 
   void _submitSpark(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        _sparkFeedback = 'Escribe una nota antes de guardar.';
+      });
+      return;
+    }
+
     if (_profiles.isEmpty) {
       setState(() {
         _sparkFeedback = 'No hay contactos aun. Crea uno desde Pilas con el boton +.';
@@ -926,12 +1022,12 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
-    final targetProfile = _resolveProfileForSpark(value);
-    final parsed = QuickSparkParser.parse(input: value, profile: targetProfile);
+    final targetProfile = _resolveProfileForSpark(trimmed);
+    final parsed = QuickSparkParser.parse(input: trimmed, profile: targetProfile);
     if (parsed == null) {
       unawaited(HapticsService.warning());
       setState(() {
-        _sparkFeedback = 'Spark no valido. Usa @Julian: ... o escribe una nota directa.';
+        _sparkFeedback = 'Nota no valida. Escribe una nota o usa @Nombre: para dirigirla a otro contacto.';
       });
       return;
     }
@@ -944,17 +1040,28 @@ class _PithShellState extends State<PithShell>
     required QuickSparkParseResult parsed,
   }) async {
     try {
-      await SupabaseSyncService.instance.saveSpark(
-        profile: targetProfile,
-        spark: parsed.spark,
+      await _runBusy(
+        () => SupabaseSyncService.instance.saveSpark(
+          profile: targetProfile,
+          spark: parsed.spark,
+        ),
       );
+    } on SupabaseSyncException catch (error) {
+      unawaited(HapticsService.warning());
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sparkFeedback = 'No se pudo guardar la nota. ${error.message}';
+      });
+      return;
     } catch (_) {
       unawaited(HapticsService.warning());
       if (!mounted) {
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo guardar el spark en Supabase. Intenta nuevamente.';
+        _sparkFeedback = 'No se pudo guardar la nota en Supabase. Intenta nuevamente.';
       });
       return;
     }
@@ -975,9 +1082,9 @@ class _PithShellState extends State<PithShell>
         sparks: [parsed.spark, ...latestProfile.sparks],
       );
       _activeProfileName = targetProfile.name;
-      _sparkFeedback = addedLabels.isEmpty
-          ? 'Spark guardado en ${targetProfile.name} • Sincronizacion Supabase OK'
-          : 'Spark guardado en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sincronizacion Supabase OK';
+        _sparkFeedback = addedLabels.isEmpty
+          ? 'Nota guardada en ${targetProfile.name} • Sincronizacion Supabase OK'
+          : 'Nota guardada en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sincronizacion Supabase OK';
     });
   }
 
@@ -1007,9 +1114,10 @@ class _PithShellState extends State<PithShell>
         onSendNote: _sendBirthdayNote,
         onAddContact: _onAddContact,
       ),
-      const RelationshipRadarScreen(
+      RelationshipRadarScreen(
         stories: _radarStories,
         feedCards: _radarFeedCards,
+        onTapCardAction: _handleRadarAction,
       ),
       ProfileCanvasScreen(
         profile: _activeProfile,
@@ -1052,7 +1160,7 @@ class _PithShellState extends State<PithShell>
           if (_isSearchVisible)
             Positioned.fill(
               child: PowerSearchScreen(
-                initialQuery: 'Rap',
+                initialQuery: '',
                 results: _searchContacts,
                 onClose: _closeSearch,
                 onSelectResult: _openProfileFromSearch,
@@ -1065,6 +1173,17 @@ class _PithShellState extends State<PithShell>
                 onClose: _closeNoteSuccess,
                 onReturnToDashboard: _returnToDashboard,
                 onViewDetails: _viewNoteDetails,
+              ),
+            ),
+          if (_isBusy)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(
+                minHeight: 2,
+                color: const Color(0xFFF4C025),
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
               ),
             ),
         ],

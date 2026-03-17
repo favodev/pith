@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/pith_models.dart';
 import 'supabase_bootstrap.dart';
+import '../utils/date_labels.dart';
 
 class SupabaseSparkRecord {
   const SupabaseSparkRecord({
@@ -72,6 +73,13 @@ class SupabaseSyncService {
 
   bool get isEnabled => SupabaseBootstrap.isConfigured;
 
+  void clearSessionCache() {
+    _defaultCircleId = null;
+    _defaultCircleUserId = null;
+    _circleIdsByUserAndName.clear();
+    _contactIdsByUserAndName.clear();
+  }
+
   SupabaseClient get _client => Supabase.instance.client;
 
   Future<void> saveSpark({
@@ -84,12 +92,12 @@ class SupabaseSyncService {
 
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
-      throw StateError('Se requiere una sesion de usuario para guardar sparks.');
+      throw StateError('Se requiere una sesion de usuario para guardar notas.');
     }
 
     final circleId = await _ensureDefaultCircleId(userId);
     if (circleId == null) {
-      throw StateError('No se pudo resolver el circulo por defecto para guardar el spark.');
+      throw StateError('No se pudo resolver el circulo por defecto para guardar la nota.');
     }
 
     final contactId = await _ensureContactId(
@@ -99,7 +107,7 @@ class SupabaseSyncService {
     );
 
     if (contactId == null) {
-      throw StateError('No se pudo resolver el contacto para guardar el spark.');
+      throw StateError('No se pudo resolver el contacto para guardar la nota.');
     }
 
     await _withRetry<void>(
@@ -110,7 +118,7 @@ class SupabaseSyncService {
           'icon_type': _inferIconType(spark.content),
         });
       },
-      errorContext: 'guardar spark',
+      errorContext: 'guardar nota',
     );
   }
 
@@ -167,7 +175,6 @@ class SupabaseSyncService {
       if (sparkRows == null) {
         // If sparks cannot be loaded after retries, keep contacts and leave sparks empty.
       } else {
-
         for (final row in sparkRows) {
           final contactId = row['contact_id'] as String?;
           final content = row['content'] as String?;
@@ -200,7 +207,7 @@ class SupabaseSyncService {
       final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
 
       final circle = _extractCircleRow(row['circle']);
-      final circleName = (circle?['name'] as String?)?.trim() ?? 'Todos';
+      final circleName = (circle?['name'] as String?)?.trim() ?? 'Conocidos';
       final circlePriority = (circle?['priority_level'] as int?) ?? 3;
       final circleColorHex = (circle?['color_hex'] as String?)?.trim() ?? '#6E7789';
 
@@ -485,7 +492,7 @@ class SupabaseSyncService {
 
       list.add(
         QuickSparkEntry(
-          dateLabel: _formatDate(createdAt),
+          dateLabel: DateLabels.monthDayYear(createdAt),
           content: content,
           highlighted: list.isEmpty,
         ),
@@ -532,9 +539,9 @@ class SupabaseSyncService {
             .from('circles')
             .insert({
               'user_id': userId,
-              'name': 'VIP',
-              'priority_level': 1,
-              'color_hex': '#F4C025',
+              'name': 'Conocidos',
+              'priority_level': 4,
+              'color_hex': '#6E7789',
             })
             .select('id')
             .single();
@@ -753,25 +760,6 @@ class SupabaseSyncService {
     }
 
     return null;
-  }
-
-  String _formatDate(DateTime date) {
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   String _inferIconType(String content) {

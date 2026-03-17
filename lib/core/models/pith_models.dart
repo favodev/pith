@@ -37,12 +37,12 @@ class PulseItem {
   final Color tint;
 }
 
-enum BirthdayPriority { vip, standard }
+enum BirthdayPriority { highlighted, standard }
 
 enum BirthdayGroup {
   allContacts('Todos'),
   family('Familia'),
-  innerCircle('Circulo cercano');
+  innerCircle('Amigos');
 
   const BirthdayGroup(this.label);
 
