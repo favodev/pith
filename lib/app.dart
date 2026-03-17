@@ -16,8 +16,6 @@ import 'features/birthdays/birthday_stack_screen.dart';
 import 'features/contacts/create_contact_sheet.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/profile/profile_canvas_screen.dart';
-import 'features/radar/relationship_radar_screen.dart';
-import 'features/search/power_search_screen.dart';
 import 'features/sparks/quick_spark_parser.dart';
 import 'features/success/note_success_screen.dart';
 import 'features/shared/common_widgets.dart';
@@ -70,16 +68,18 @@ class PithShell extends StatefulWidget {
 
 class _PithShellState extends State<PithShell>
     with SingleTickerProviderStateMixin {
+  static const _homeTabIndex = 0;
+  static const _birthdaysTabIndex = 1;
+  static const _profileTabIndex = 2;
+
   int _currentIndex = 0;
   bool _isFanOutVisible = false;
-  bool _isSearchVisible = false;
   int _pendingAsyncOps = 0;
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   late Map<String, ContactProfile> _profiles;
   late Map<String, SupabaseContactRecord> _remoteContactsByName;
   late List<BirthdayContact> _birthdayContacts;
-  late List<SearchContact> _searchContacts;
   String _activeProfileName = '';
   int _profileReturnIndex = 0;
   late final AnimationController _fanOutController;
@@ -88,7 +88,6 @@ class _PithShellState extends State<PithShell>
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Inicio', icon: Icons.home_rounded),
     ShellTabItem(label: 'Pilas', icon: Icons.layers_rounded),
-    ShellTabItem(label: 'Calendario', icon: Icons.calendar_today_rounded),
     ShellTabItem(label: 'Perfil', icon: Icons.person_rounded),
   ];
 
@@ -98,7 +97,6 @@ class _PithShellState extends State<PithShell>
     _profiles = {};
     _remoteContactsByName = {};
     _birthdayContacts = [];
-    _searchContacts = [];
     _activeProfileName = '';
     _fanOutController = AnimationController(
       vsync: this,
@@ -131,9 +129,6 @@ class _PithShellState extends State<PithShell>
         };
         _birthdayContacts = [
           for (final contact in contacts) _birthdayFromRemoteContact(contact),
-        ];
-        _searchContacts = [
-          for (final contact in contacts) _searchFromRemoteContact(contact),
         ];
 
         if (_profiles.isNotEmpty && !_profiles.containsKey(_activeProfileName)) {
@@ -203,22 +198,135 @@ class _PithShellState extends State<PithShell>
   }
 
   void _openSearch() {
-    unawaited(HapticsService.select());
-    setState(() => _isSearchVisible = true);
+    unawaited(_openSearchSheet());
   }
 
-  void _closeSearch() {
-    setState(() => _isSearchVisible = false);
-  }
-
-  void _openProfileFromSearch(SearchContact contact) {
+  Future<void> _openSearchSheet() async {
     unawaited(HapticsService.select());
-    setState(() {
-      _activeProfileName = contact.name;
-      _profileReturnIndex = _currentIndex;
-      _isSearchVisible = false;
-      _currentIndex = 3;
-    });
+
+    final contacts = _profiles.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    if (!mounted) {
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF101A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final controller = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final query = controller.text.trim().toLowerCase();
+            final filtered = contacts.where((contact) {
+              if (query.isEmpty) {
+                return true;
+              }
+              return contact.name.toLowerCase().contains(query) ||
+                  contact.subtitle.toLowerCase().contains(query);
+            }).toList();
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  16 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Buscar contacto',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: controller,
+                      onChanged: (_) => setSheetState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Escribe un nombre',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: controller.text.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  controller.clear();
+                                  setSheetState(() {});
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 360),
+                      child: filtered.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              child: Text(
+                                contacts.isEmpty
+                                    ? 'Aun no tienes contactos guardados.'
+                                    : 'No hay coincidencias para tu busqueda.',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF9AA8C0),
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final contact = filtered[index];
+                                return ListTile(
+                                  tileColor: Colors.white.withValues(alpha: 0.04),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: const Color(0x223B4A63),
+                                    child: Text(contact.initials),
+                                  ),
+                                  title: Text(contact.name),
+                                  subtitle: Text(
+                                    contact.subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                    if (!mounted) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _activeProfileName = contact.name;
+                                      _profileReturnIndex = _currentIndex;
+                                      _currentIndex = _profileTabIndex;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   ContactProfile get _activeProfile => _profiles[_activeProfileName] ?? _emptyProfile;
@@ -268,25 +376,6 @@ class _PithShellState extends State<PithShell>
       group: group,
       heightFactor: 0.92 + ((contact.fullName.length % 5) * 0.1),
       actionIcon: contact.circlePriority <= 2 ? Icons.card_giftcard_rounded : Icons.auto_awesome_rounded,
-    );
-  }
-
-  SearchContact _searchFromRemoteContact(SupabaseContactRecord contact) {
-    final previewSpark = contact.sparks.isEmpty ? '' : contact.sparks.first.content;
-    final description = previewSpark.isEmpty
-      ? 'Circulo: ${contact.circleName}'
-        : previewSpark.length > 46
-            ? '${previewSpark.substring(0, 46)}...'
-            : previewSpark;
-
-    return SearchContact(
-      name: contact.fullName,
-      description: description,
-      initials: _initialsFromName(contact.fullName),
-      statusColor: contact.circlePriority <= 1
-          ? const Color(0xFF21C45D)
-          : const Color(0xFF95A3B9),
-      highlighted: contact.circlePriority <= 2,
     );
   }
 
@@ -464,75 +553,6 @@ class _PithShellState extends State<PithShell>
     return items;
   }
 
-  List<RadarStory> get _radarStories {
-    final hasFriends = _birthdayContacts.any(
-      (c) => CircleLabels.normalize(c.relation) == CircleLabels.friends,
-    );
-    final hasFamily = _birthdayContacts.any(
-      (c) => c.group == BirthdayGroup.family || c.relation.toLowerCase().contains('familia'),
-    );
-
-    return [
-      const RadarStory(label: 'Tendencia', highlighted: true, accent: Color(0xFFF4C025)),
-      RadarStory(
-        label: 'Amigos',
-        highlighted: hasFriends,
-        accent: hasFriends ? const Color(0xFFF4C025) : const Color(0xFF8C9AB2),
-      ),
-      RadarStory(
-        label: 'Contactos',
-        highlighted: _profiles.length >= 3,
-        accent: const Color(0xFF7590C0),
-      ),
-      RadarStory(
-        label: 'Familia',
-        highlighted: hasFamily,
-        accent: const Color(0xFFBA8B66),
-      ),
-    ];
-  }
-
-  List<RadarFeedCard> get _radarFeedCards {
-    final cards = <RadarFeedCard>[];
-
-    if (_todayBirthdayContacts.isNotEmpty) {
-      final first = _todayBirthdayContacts.first;
-      cards.add(
-        RadarFeedCard(
-          title: 'Cumpleanos activo: ${first.name}',
-          description: 'Revisa notas y recuerdos para escribir un saludo con contexto.',
-          actionLabel: 'Abrir perfil',
-          gradient: const [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
-        ),
-      );
-    }
-
-    final profile = _activeProfile;
-    if (profile.sparks.isNotEmpty) {
-      cards.add(
-        RadarFeedCard(
-          title: 'Ultima nota de ${profile.name}',
-          description: profile.sparks.first.content,
-          actionLabel: 'Ver detalles',
-          gradient: const [Color(0xFF7F6652), Color(0xFF201716), Color(0xFF42506B)],
-        ),
-      );
-    }
-
-    if (cards.isEmpty) {
-      cards.add(
-        const RadarFeedCard(
-          title: 'Tu radar aun no tiene actividad',
-          description: 'Agrega contactos y notas para activar recomendaciones y contexto.',
-          actionLabel: 'Comenzar',
-          gradient: [Color(0xFF223C72), Color(0xFF0F1730), Color(0xFF5F7088)],
-        ),
-      );
-    }
-
-    return cards;
-  }
-
   ContactProfile _resolveProfileForSpark(String value) {
     if (_profiles.isEmpty) {
       return _emptyProfile;
@@ -603,16 +623,16 @@ class _PithShellState extends State<PithShell>
       if (receipt != null) {
         _activeProfileName = receipt.recipientName;
       }
-      _profileReturnIndex = 1;
+      _profileReturnIndex = _birthdaysTabIndex;
       _noteReceipt = null;
-      _currentIndex = 3;
+      _currentIndex = _profileTabIndex;
     });
   }
 
   void _openProfileFromTab() {
     setState(() {
-      _profileReturnIndex = _currentIndex == 3 ? 0 : _currentIndex;
-      _currentIndex = 3;
+      _profileReturnIndex = _currentIndex == _profileTabIndex ? _homeTabIndex : _currentIndex;
+      _currentIndex = _profileTabIndex;
     });
   }
 
@@ -622,22 +642,8 @@ class _PithShellState extends State<PithShell>
     });
   }
 
-  void _handleRadarAction(RadarFeedCard card) {
-    if (card.title.toLowerCase().contains('cumpleanos')) {
-      _openBirthdayStack();
-      return;
-    }
-
-    if (_activeProfileName.isNotEmpty && _profiles.containsKey(_activeProfileName)) {
-      setState(() {
-        _profileReturnIndex = _currentIndex;
-        _currentIndex = 3;
-      });
-    }
-  }
-
   void _onNavTap(int index) {
-    if (index == 3) {
+    if (index == _profileTabIndex) {
       _openProfileFromTab();
       return;
     }
@@ -759,7 +765,6 @@ class _PithShellState extends State<PithShell>
 
     final profile = _profileFromRemoteContact(savedRecord);
     final birthday = _birthdayFromRemoteContact(savedRecord);
-    final search = _searchFromRemoteContact(savedRecord);
 
     setState(() {
       _remoteContactsByName[savedRecord.fullName] = savedRecord;
@@ -768,10 +773,9 @@ class _PithShellState extends State<PithShell>
         birthday,
         ..._birthdayContacts.where((item) => item.name != savedRecord.fullName),
       ];
-      _searchContacts = [search, ..._searchContacts.where((item) => item.name != search.name)];
       _activeProfileName = profile.name;
       _profileReturnIndex = _currentIndex;
-      _currentIndex = 3;
+      _currentIndex = _profileTabIndex;
       _sparkFeedback = 'Contacto guardado en Supabase: ${profile.name}';
     });
   }
@@ -918,7 +922,6 @@ class _PithShellState extends State<PithShell>
 
     final profile = _profileFromRemoteContact(updatedRecord);
     final birthday = _birthdayFromRemoteContact(updatedRecord);
-    final search = _searchFromRemoteContact(updatedRecord);
 
     setState(() {
       _remoteContactsByName.remove(oldName);
@@ -930,10 +933,6 @@ class _PithShellState extends State<PithShell>
       _birthdayContacts = [
         birthday,
         ..._birthdayContacts.where((item) => item.name != oldName && item.name != updatedRecord.fullName),
-      ];
-      _searchContacts = [
-        search,
-        ..._searchContacts.where((item) => item.name != oldName && item.name != search.name),
       ];
 
       _activeProfileName = profile.name;
@@ -999,9 +998,8 @@ class _PithShellState extends State<PithShell>
       _remoteContactsByName.remove(name);
       _profiles.remove(name);
       _birthdayContacts = _birthdayContacts.where((item) => item.name != name).toList();
-      _searchContacts = _searchContacts.where((item) => item.name != name).toList();
       _activeProfileName = _profiles.isEmpty ? '' : _profiles.keys.first;
-      _currentIndex = 0;
+      _currentIndex = _homeTabIndex;
       _sparkFeedback = 'Contacto eliminado en Supabase: $name';
     });
   }
@@ -1114,11 +1112,6 @@ class _PithShellState extends State<PithShell>
         onSendNote: _sendBirthdayNote,
         onAddContact: _onAddContact,
       ),
-      RelationshipRadarScreen(
-        stories: _radarStories,
-        feedCards: _radarFeedCards,
-        onTapCardAction: _handleRadarAction,
-      ),
       ProfileCanvasScreen(
         profile: _activeProfile,
         onSubmitSpark: _submitSpark,
@@ -1157,15 +1150,6 @@ class _PithShellState extends State<PithShell>
                 ),
               ),
             ),
-          if (_isSearchVisible)
-            Positioned.fill(
-              child: PowerSearchScreen(
-                initialQuery: '',
-                results: _searchContacts,
-                onClose: _closeSearch,
-                onSelectResult: _openProfileFromSearch,
-              ),
-            ),
           if (_noteReceipt != null)
             Positioned.fill(
               child: NoteSuccessScreen(
@@ -1188,7 +1172,7 @@ class _PithShellState extends State<PithShell>
             ),
         ],
       ),
-      bottomNavigationBar: _isSearchVisible || _noteReceipt != null
+        bottomNavigationBar: _noteReceipt != null
           ? null
           : Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),

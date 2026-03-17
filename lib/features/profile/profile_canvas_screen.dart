@@ -65,12 +65,6 @@ class ProfileCanvasScreen extends StatelessWidget {
                           icon: const Icon(Icons.edit_note_rounded),
                           color: const Color(0x889AA8C0),
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: onOpenContactActions,
-                          icon: const Icon(Icons.settings_rounded),
-                          color: const Color(0x889AA8C0),
-                        ),
                       ],
                     ),
                   ],
@@ -202,8 +196,6 @@ class ProfileCanvasScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 18),
-                const _ProfileActionsRow(),
                 const SizedBox(height: 130),
               ],
             ),
@@ -397,35 +389,6 @@ class _SparkComposerState extends State<_SparkComposer> {
               label: const Text('Agregar nota'),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileActionsRow extends StatelessWidget {
-  const _ProfileActionsRow();
-
-  @override
-  Widget build(BuildContext context) {
-    const actions = ['REGISTRAR REUNION', 'PONER RECORDATORIO', 'COMPARTIR PERFIL'];
-
-    return Align(
-      alignment: Alignment.center,
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 16,
-        runSpacing: 10,
-        children: [
-          for (final action in actions)
-            Text(
-              action,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0x8A9AA8C0),
-                letterSpacing: 2.2,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
         ],
       ),
     );

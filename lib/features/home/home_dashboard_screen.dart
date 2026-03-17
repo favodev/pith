@@ -57,11 +57,18 @@ class HomeDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     if (hasContacts)
-                      Text(
-                        'Ver todo',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFF4C025),
-                          fontWeight: FontWeight.w700,
+                      InkWell(
+                        onTap: onOpenBirthdays,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Text(
+                            'Ver todo',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFFF4C025),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -86,8 +93,6 @@ class HomeDashboardScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
-                const _ShortcutRow(),
                 const SizedBox(height: 120),
               ],
             ),
@@ -345,8 +350,6 @@ class _PulseCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          const Icon(Icons.more_horiz_rounded, color: Color(0xFF91A0BA)),
         ],
       ),
     );
@@ -402,42 +405,13 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
         style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFFF4C025)),
-          hintText: 'Escribe una nota. Opcional: @Julian: le gusta el rap noventero',
+          hintText: 'Escribe una nota para un contacto',
           suffixIcon: IconButton(
             onPressed: _submit,
             icon: const Icon(Icons.send_rounded, color: Color(0xFF8392AD)),
             tooltip: 'Guardar nota',
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ShortcutRow extends StatelessWidget {
-  const _ShortcutRow();
-
-  @override
-  Widget build(BuildContext context) {
-    const shortcuts = ['REGISTRAR REUNION', 'PONER RECORDATORIO', 'COMPARTIR PERFIL'];
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(
-        alignment: WrapAlignment.start,
-        spacing: 18,
-        runSpacing: 10,
-        children: [
-          for (final item in shortcuts)
-            Text(
-              item,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF8FA0BC),
-                letterSpacing: 2.6,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-        ],
       ),
     );
   }
