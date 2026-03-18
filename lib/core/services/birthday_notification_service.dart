@@ -26,8 +26,8 @@ class BirthdayNotificationService {
   bool _initialized = false;
 
   static const _androidChannelId = 'pith_birthdays';
-  static const _androidChannelName = 'Cumpleanos';
-  static const _androidChannelDescription = 'Recordatorios de cumpleanos de contactos';
+  static const _androidChannelName = 'Cumpleaños';
+  static const _androidChannelDescription = 'Recordatorios de cumpleaños de contactos';
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -68,7 +68,7 @@ class BirthdayNotificationService {
 
       await _plugin.zonedSchedule(
         id,
-        'Cumpleanos hoy',
+        'Cumpleaños hoy',
         'Hoy esta de cumple ${reminder.name}.',
         scheduledAt,
         const NotificationDetails(

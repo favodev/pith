@@ -22,13 +22,15 @@ class ProfileCanvasScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(24, 26, 24, 32),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate(
-              [
+    return Stack(
+      children: [
+        CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 26, 24, 32),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate(
+                  [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -46,10 +48,9 @@ class ProfileCanvasScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'VOLVER A LA RED',
+                              'Volver',
                               style: textTheme.labelMedium?.copyWith(
                                 color: const Color(0x889AA8C0),
-                                letterSpacing: 3,
                               ),
                             ),
                           ],
@@ -121,26 +122,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 56),
-                Text(
-                  'INTERESES CURADOS',
-                  textAlign: TextAlign.center,
-                  style: textTheme.labelMedium?.copyWith(
-                    color: const Color(0x669AA8C0),
-                    letterSpacing: 4,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 28,
-                  runSpacing: 24,
-                  children: [
-                    for (final interest in profile.interests)
-                      _InterestBadge(interest: interest),
-                  ],
-                ),
-                const SizedBox(height: 72),
+                const SizedBox(height: 48),
                 Text(
                   'NOTAS Y RECUERDOS',
                   textAlign: TextAlign.center,
@@ -162,67 +144,39 @@ class ProfileCanvasScreen extends StatelessWidget {
                   _SparkTimelineEntry(entry: spark),
                   const SizedBox(height: 34),
                 ],
-                const SizedBox(height: 24),
-                _SparkComposer(
-                  profileName: profile.name,
-                  onSubmitted: onSubmitSpark,
+                const SizedBox(height: 170),
+                  ],
                 ),
-                if (sparkFeedback != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    sparkFeedback!,
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFF4C025),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 130),
-              ],
+              ),
             ),
+          ],
+        ),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 16 + MediaQuery.of(context).padding.bottom,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (sparkFeedback != null) ...[
+                Text(
+                  sparkFeedback!,
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFF4C025),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              _SparkComposer(
+                profileName: profile.name,
+                onSubmitted: onSubmitSpark,
+              ),
+            ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _InterestBadge extends StatelessWidget {
-  const _InterestBadge({required this.interest});
-
-  final ProfileInterest interest;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 88, maxWidth: 156),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.04),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            child: Icon(interest.icon, color: const Color(0xFFF4C025), size: 24),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            interest.label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xB3E8DFC5),
-              letterSpacing: 1.2,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -390,7 +390,7 @@ class _PithShellState extends State<PithShell>
       );
 
   ContactProfile _profileFromRemoteContact(SupabaseContactRecord contact) {
-    final subtitle = '${contact.circleName.toUpperCase()} — CONTACTO';
+    final subtitle = _displayCircleName(contact.circleName);
 
     final persistedInterests = [
       for (final label in contact.interestLabels)
@@ -410,15 +410,18 @@ class _PithShellState extends State<PithShell>
 
   BirthdayContact _birthdayFromRemoteContact(SupabaseContactRecord contact) {
     final group = _groupFromRemoteCircle(contact.circleName);
+    final displayCircle = _displayCircleName(contact.circleName);
+    final daysUntil = _daysUntilBirthday(contact.birthday);
+    final isHighlighted = daysUntil != null && daysUntil <= 14;
 
     return BirthdayContact(
       name: contact.fullName,
-      relation: contact.circleName,
+      relation: displayCircle,
       birthday: contact.birthday,
       subtitle: _birthdaySubtitle(contact.birthday),
       initials: _initialsFromName(contact.fullName),
-      accent: _colorFromHex(contact.circleColorHex),
-      priority: contact.circlePriority <= 1 ? BirthdayPriority.highlighted : BirthdayPriority.standard,
+      accent: _circleAccentColor(contact.circleName, fallbackHex: contact.circleColorHex),
+      priority: isHighlighted ? BirthdayPriority.highlighted : BirthdayPriority.standard,
       group: group,
       heightFactor: 0.92 + ((contact.fullName.length % 5) * 0.1),
       actionIcon: contact.circlePriority <= 2 ? Icons.card_giftcard_rounded : Icons.auto_awesome_rounded,
@@ -595,7 +598,7 @@ class _PithShellState extends State<PithShell>
 
   String _birthdaySubtitle(DateTime? birthday) {
     if (birthday == null) {
-      return 'Sin cumpleanos';
+      return 'Sin cumpleaños';
     }
 
     final days = _daysUntilBirthday(birthday);
@@ -627,6 +630,28 @@ class _PithShellState extends State<PithShell>
     return Color(0xFF000000 | parsed);
   }
 
+  Color _circleAccentColor(String circleName, {required String fallbackHex}) {
+    final normalized = CircleLabels.normalize(circleName);
+    return switch (normalized) {
+      CircleLabels.family => const Color(0xFFC77A48),
+      CircleLabels.friends => const Color(0xFF4F74C4),
+      CircleLabels.work => const Color(0xFF5A8A7A),
+      CircleLabels.acquaintances => const Color(0xFF7A669A),
+      _ => _colorFromHex(fallbackHex),
+    };
+  }
+
+  String _displayCircleName(String circleName) {
+    final normalized = CircleLabels.normalize(circleName);
+    return switch (normalized) {
+      CircleLabels.family => 'Familia',
+      CircleLabels.friends => 'Amigos',
+      CircleLabels.work => 'Trabajo',
+      CircleLabels.acquaintances => 'Conocidos',
+      _ => circleName,
+    };
+  }
+
   String _formatDate(DateTime date) {
     return DateLabels.monthDayYear(date);
   }
@@ -645,10 +670,12 @@ class _PithShellState extends State<PithShell>
 
     return DeckSummary(
       totalBirthdays: total,
-      title: '$total Cumpleanos\nproximos 14 dias',
-      subtitle: total == 0
-          ? 'Tu red esta vacia. Agrega tu primer contacto.'
-          : 'Activa recordatorios y prepara un detalle a tiempo.',
+      title: '$total Cumpleaños\npróximos 14 días',
+      subtitle: _profiles.isEmpty
+          ? 'Tu red está vacía. Agrega tu primer contacto.'
+          : total == 0
+              ? 'No hay cumpleaños próximos. Todo está al día.'
+              : 'Activa recordatorios y prepara un detalle a tiempo.',
       avatars: avatars,
     );
   }
@@ -794,7 +821,7 @@ class _PithShellState extends State<PithShell>
     final birthdaySpark = QuickSparkParseResult(
       spark: QuickSparkEntry(
         dateLabel: _formatDate(DateTime.now()),
-        content: 'Nota de cumpleanos guardada.',
+        content: 'Nota de cumpleaños guardada.',
         highlighted: true,
       ),
       inferredInterests: const [],
@@ -944,11 +971,11 @@ class _PithShellState extends State<PithShell>
 
   _CircleMapping _circleMapping(String circle) {
     return switch (CircleLabels.normalize(circle)) {
-      CircleLabels.family => const _CircleMapping(priority: 1, colorHex: '#DEB06D'),
-      CircleLabels.friends => const _CircleMapping(priority: 2, colorHex: '#7F6688'),
-      CircleLabels.work => const _CircleMapping(priority: 3, colorHex: '#4A84C6'),
-      CircleLabels.acquaintances => const _CircleMapping(priority: 4, colorHex: '#6E7789'),
-      _ => const _CircleMapping(priority: 3, colorHex: '#6E7789'),
+      CircleLabels.family => const _CircleMapping(priority: 1, colorHex: '#C77A48'),
+      CircleLabels.friends => const _CircleMapping(priority: 2, colorHex: '#4F74C4'),
+      CircleLabels.work => const _CircleMapping(priority: 3, colorHex: '#5A8A7A'),
+      CircleLabels.acquaintances => const _CircleMapping(priority: 4, colorHex: '#7A669A'),
+      _ => const _CircleMapping(priority: 3, colorHex: '#708DB4'),
     };
   }
 
@@ -992,18 +1019,6 @@ class _PithShellState extends State<PithShell>
                   child: FilledButton.tonalIcon(
                     onPressed: () async {
                       Navigator.of(context).pop();
-                      await _editInterests(profileName);
-                    },
-                    icon: const Icon(Icons.interests_rounded),
-                    label: const Text('Editar intereses'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
                       await _editContact(profileName);
                     },
                     icon: const Icon(Icons.edit_rounded),
@@ -1028,119 +1043,6 @@ class _PithShellState extends State<PithShell>
         );
       },
     );
-  }
-
-  Future<void> _editInterests(String profileName) async {
-    final profile = _profiles[profileName];
-    if (profile == null || !mounted) {
-      return;
-    }
-
-    final labels = profile.interests.map((entry) => entry.label).toList(growable: true);
-    final inputController = TextEditingController();
-
-    final updated = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF101A2A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  16 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Intereses de $profileName',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final label in labels)
-                          InputChip(
-                            label: Text(label),
-                            onDeleted: () {
-                              setSheetState(() => labels.remove(label));
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: inputController,
-                      decoration: const InputDecoration(
-                        hintText: 'Agregar interes manual',
-                        prefixIcon: Icon(Icons.add_circle_outline_rounded),
-                      ),
-                      onSubmitted: (value) {
-                        final clean = value.trim();
-                        if (clean.isEmpty || labels.contains(clean)) {
-                          return;
-                        }
-                        setSheetState(() {
-                          labels.add(clean);
-                          inputController.clear();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(context).pop(labels),
-                        child: const Text('Guardar intereses'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    inputController.dispose();
-
-    if (!mounted || updated == null) {
-      return;
-    }
-
-    final mapped = [
-      for (final label in updated)
-        ProfileInterest(label: label, icon: _interestIconForLabel(label)),
-    ];
-
-    final remote = _remoteContactsByName[profileName];
-    if (remote != null) {
-      unawaited(
-        SupabaseSyncService.instance.saveContactInterests(
-          contactId: remote.id,
-          interestLabels: updated,
-        ),
-      );
-    }
-
-    setState(() {
-      _profiles[profileName] = profile.copyWith(interests: mapped);
-    });
-    _setSparkFeedback('Intereses actualizados para $profileName.');
   }
 
   Future<void> _editContact(String oldName) async {
@@ -1444,7 +1346,7 @@ class _PithShellState extends State<PithShell>
         ? 'Nota guardada para ${targetProfile.name}.'
         : 'Nota guardada para ${targetProfile.name}. Nuevos tags: ${addedLabels.join(', ')}';
     if (parsed.inferredBirthday != null) {
-      feedback = 'Nota guardada y cumpleanos actualizado para ${targetProfile.name}.';
+      feedback = 'Nota guardada y cumpleaños actualizado para ${targetProfile.name}.';
     }
     _setSparkFeedback(feedback);
 

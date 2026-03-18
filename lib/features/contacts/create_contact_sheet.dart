@@ -235,7 +235,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                 Expanded(
                   child: Text(
                     _birthday == null
-                        ? 'Sin cumpleanos'
+                        ? 'Sin cumpleaños'
                       : DateLabels.monthDayYear(_birthday!),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFFE8DFC5),

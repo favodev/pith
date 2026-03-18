@@ -45,35 +45,25 @@ class HomeDashboardScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 _DeckCard(deck: deck, onTap: onOpenBirthdays),
                 const SizedBox(height: 34),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'PULSO RECIENTE',
-                      style: textTheme.labelLarge?.copyWith(
-                        color: const Color(0xFF8392AD),
-                        letterSpacing: 3.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (hasContacts)
-                      InkWell(
-                        onTap: onOpenBirthdays,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          child: Text(
-                            'Ver todo',
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFFF4C025),
-                              fontWeight: FontWeight.w700,
-                            ),
+                if (hasContacts)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: InkWell(
+                      onTap: onOpenBirthdays,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Text(
+                          'Ver todos',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFFF4C025),
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+                    ),
+                  ),
+                const SizedBox(height: 16),
                 if (!hasContacts)
                   _EmptyHomeState(onAddFirstContact: onAddFirstContact)
                 else
@@ -160,108 +150,63 @@ class _DeckCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 10,
-            right: 10,
-            bottom: -12,
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFF182435).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(34),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 5,
-            right: 5,
-            bottom: -24,
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFF182435).withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(34),
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF182435),
-              borderRadius: BorderRadius.circular(36),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 28,
-                  offset: Offset(0, 18),
-                ),
-              ],
-            ),
-            child: Column(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF182435),
+          borderRadius: BorderRadius.circular(36),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'STACK PRINCIPAL',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: const Color(0xFF8392AD),
-                              letterSpacing: 4,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            deck.title,
-                            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                              color: const Color(0xFFF4EBD0),
-                              fontWeight: FontWeight.w800,
-                              height: 1.04,
-                              letterSpacing: -1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 240),
-                            child: Text(
-                              deck.subtitle,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: const Color(0xFF9AA8C0),
-                                height: 1.25,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.cake_rounded, color: Color(0xFFF4C025), size: 62),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  height: 42,
-                  child: Stack(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (var index = 0; index < deck.avatars.length; index++)
-                        Positioned(
-                          left: index * 26,
-                          child: _DeckAvatar(label: deck.avatars[index]),
+                      Text(
+                        deck.title,
+                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          color: const Color(0xFFF4EBD0),
+                          fontWeight: FontWeight.w800,
+                          height: 1.04,
+                          letterSpacing: -1.4,
                         ),
+                      ),
+                      const SizedBox(height: 18),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 240),
+                        child: Text(
+                          deck.subtitle,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: const Color(0xFF9AA8C0),
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
+                const Icon(Icons.cake_rounded, color: Color(0xFFF4C025), size: 62),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 28),
+            SizedBox(
+              height: 42,
+              child: Stack(
+                children: [
+                  for (var index = 0; index < deck.avatars.length; index++)
+                    Positioned(
+                      left: index * 26,
+                      child: _DeckAvatar(label: deck.avatars[index]),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

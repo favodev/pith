@@ -63,11 +63,11 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
             SliverPersistentHeader(
               pinned: true,
               delegate: _BirthdayHeaderDelegate(
-                minExtent: 132,
-                maxExtent: 132,
+                minExtent: 140,
+                maxExtent: 140,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF09111F).withValues(alpha: 0.92),
+                    color: const Color(0xFF070B13),
                     border: Border(
                       bottom: BorderSide(
                         color: Colors.white.withValues(alpha: 0.06),
@@ -88,9 +88,11 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                               ),
                               Expanded(
                                 child: Text(
-                                  '${widget.todayCount} cumpleanos hoy · ${widget.contacts.length} en total',
+                                  '${widget.todayCount} cumpleaños hoy · ${widget.contacts.length} en total',
                                   textAlign: TextAlign.center,
-                                  style: textTheme.titleLarge?.copyWith(
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -102,9 +104,9 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         SizedBox(
-                          height: 34,
+                          height: 40,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -131,21 +133,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate(
                   [
-                    Row(
-                      children: [
-                        const Icon(Icons.stars_rounded, color: Color(0xFFF4C025), size: 20),
-                        const SizedBox(width: 10),
-                        Text(
-                          'DESEOS PRIORITARIOS',
-                          style: textTheme.labelLarge?.copyWith(
-                            color: const Color(0xFFF4C025),
-                            letterSpacing: 4,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 4),
                     if (filteredContacts.isEmpty)
                       Container(
                         width: double.infinity,
@@ -222,7 +210,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
         ),
         Positioned(
           right: 24,
-          bottom: 112,
+          bottom: 24,
           child: GestureDetector(
             onTap: widget.onAddContact,
             child: Container(
@@ -231,13 +219,6 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color(0xFFF4C025),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x44F4C025),
-                    blurRadius: 22,
-                    offset: Offset(0, 8),
-                  ),
-                ],
               ),
               child: const Icon(Icons.add_rounded, color: Color(0xFF101010), size: 32),
             ),
@@ -380,16 +361,7 @@ class _DeckFanCoreCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'STACK PRINCIPAL',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF8392AD),
-              letterSpacing: 4,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '$totalBirthdays cumpleanos\nde hoy',
+            '$totalBirthdays cumpleaños\nde hoy',
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
               color: const Color(0xFFF4EBD0),
               fontWeight: FontWeight.w800,
