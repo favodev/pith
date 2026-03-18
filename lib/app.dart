@@ -141,7 +141,7 @@ class _PithShellState extends State<PithShell>
         () => SupabaseSyncService.instance.loadContactsWithSparks(),
       );
 
-      if (!mounted || contacts.isEmpty) {
+      if (!mounted) {
         return;
       }
 
@@ -156,7 +156,9 @@ class _PithShellState extends State<PithShell>
           for (final contact in contacts) _birthdayFromRemoteContact(contact),
         ];
 
-        if (_profiles.isNotEmpty && !_profiles.containsKey(_activeProfileName)) {
+        if (_profiles.isEmpty) {
+          _activeProfileName = '';
+        } else if (!_profiles.containsKey(_activeProfileName)) {
           _activeProfileName = _profiles.keys.first;
         }
       });

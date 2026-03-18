@@ -109,8 +109,6 @@ class _HeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const PithLogo(),
-        const SizedBox(width: 12),
         Text(
           'Pith',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
