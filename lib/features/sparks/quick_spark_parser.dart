@@ -107,10 +107,6 @@ class QuickSparkParser {
     if (RegExp(r'\b(hoy|manana|lunes|martes|miercoles|jueves|viernes|sabado|domingo|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|\d{1,2}/\d{1,2})\b').hasMatch(normalized)) {
       addInterest(const ProfileInterest(label: 'Planes con fecha', icon: Icons.event_rounded));
     }
-    if (RegExp(r'\b(en|en el|en la)\s+[a-zà-ÿ]{3,}\b').hasMatch(normalized)) {
-      addInterest(const ProfileInterest(label: 'Lugares clave', icon: Icons.place_rounded));
-    }
-
     return inferred;
   }
 }

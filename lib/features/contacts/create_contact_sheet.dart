@@ -7,13 +7,11 @@ class CreateContactInput {
   const CreateContactInput({
     required this.fullName,
     required this.circleName,
-    required this.locationName,
     required this.birthday,
   });
 
   final String fullName;
   final String circleName;
-  final String locationName;
   final DateTime? birthday;
 }
 
@@ -21,13 +19,11 @@ class ContactFormInitialData {
   const ContactFormInitialData({
     required this.fullName,
     required this.circleName,
-    required this.locationName,
     required this.birthday,
   });
 
   final String fullName;
   final String circleName;
-  final String locationName;
   final DateTime? birthday;
 }
 
@@ -90,7 +86,6 @@ class _CreateContactSheetBody extends StatefulWidget {
 
 class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
   final _nameController = TextEditingController();
-  final _locationController = TextEditingController();
 
   String _selectedCircle = CircleLabels.acquaintances;
   DateTime? _birthday;
@@ -102,7 +97,6 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
     final initial = widget.initial;
     if (initial != null) {
       _nameController.text = initial.fullName;
-      _locationController.text = initial.locationName;
       _selectedCircle = CircleLabels.normalize(initial.circleName);
       _birthday = initial.birthday;
     }
@@ -111,7 +105,6 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
   @override
   void dispose() {
     _nameController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -149,7 +142,6 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
       CreateContactInput(
         fullName: fullName,
         circleName: _selectedCircle,
-        locationName: _locationController.text.trim(),
         birthday: _birthday,
       ),
     );
@@ -198,15 +190,6 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
               decoration: _inputDecoration(
                 hint: 'Nombre completo',
                 icon: Icons.person_rounded,
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _locationController,
-              textInputAction: TextInputAction.done,
-              decoration: _inputDecoration(
-                hint: 'Ciudad o ubicacion',
-                icon: Icons.location_on_rounded,
               ),
             ),
             const SizedBox(height: 10),

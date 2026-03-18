@@ -351,9 +351,7 @@ class _PithShellState extends State<PithShell>
       );
 
   ContactProfile _profileFromRemoteContact(SupabaseContactRecord contact) {
-    final subtitle = contact.locationName.isEmpty
-      ? '${contact.circleName.toUpperCase()} — CONTACTO'
-        : '${contact.locationName.toUpperCase()} — ${contact.circleName.toUpperCase()}';
+    final subtitle = '${contact.circleName.toUpperCase()} — CONTACTO';
 
     final persistedInterests = [
       for (final label in contact.interestLabels)
@@ -851,7 +849,6 @@ class _PithShellState extends State<PithShell>
             circleName: input.circleName,
             circlePriority: mapping.priority,
             circleColorHex: mapping.colorHex,
-            locationName: input.locationName,
             birthday: input.birthday,
           ),
         ),
@@ -1116,7 +1113,6 @@ class _PithShellState extends State<PithShell>
       initial: ContactFormInitialData(
         fullName: existing.fullName,
         circleName: existing.circleName,
-        locationName: existing.locationName,
         birthday: existing.birthday,
       ),
     );
@@ -1137,7 +1133,6 @@ class _PithShellState extends State<PithShell>
             circleName: input.circleName,
             circlePriority: mapping.priority,
             circleColorHex: mapping.colorHex,
-            locationName: input.locationName,
             birthday: input.birthday,
           ),
         ),

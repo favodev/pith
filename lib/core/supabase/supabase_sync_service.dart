@@ -24,7 +24,6 @@ class SupabaseContactRecord {
   const SupabaseContactRecord({
     required this.id,
     required this.fullName,
-    required this.locationName,
     required this.birthday,
     required this.circleName,
     required this.circlePriority,
@@ -35,7 +34,6 @@ class SupabaseContactRecord {
 
   final String id;
   final String fullName;
-  final String locationName;
   final DateTime? birthday;
   final String circleName;
   final int circlePriority;
@@ -50,7 +48,6 @@ class CreateContactPayload {
     required this.circleName,
     required this.circlePriority,
     required this.circleColorHex,
-    required this.locationName,
     this.birthday,
   });
 
@@ -58,7 +55,6 @@ class CreateContactPayload {
   final String circleName;
   final int circlePriority;
   final String circleColorHex;
-  final String locationName;
   final DateTime? birthday;
 }
 
@@ -141,7 +137,7 @@ class SupabaseSyncService {
       () async {
         final rows = await _client
             .from('contacts')
-            .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+          .select('id,full_name,birthday,circle:circles(name,priority_level,color_hex)')
             .eq('user_id', userId)
             .order('created_at', ascending: false);
 
@@ -235,8 +231,6 @@ class SupabaseSyncService {
         continue;
       }
 
-      final locationName = (row['location_name'] as String?)?.trim() ?? '';
-
       final birthdayRaw = row['birthday'] as String?;
       final birthday = _safeParseBirthday(birthdayRaw);
 
@@ -249,7 +243,6 @@ class SupabaseSyncService {
         SupabaseContactRecord(
           id: id,
           fullName: fullName,
-          locationName: locationName,
           birthday: birthday,
           circleName: circleName,
           circlePriority: circlePriority,
@@ -302,9 +295,8 @@ class SupabaseSyncService {
               'circle_id': circleId,
               'full_name': payload.fullName,
               'birthday': birthdayIso,
-              'location_name': payload.locationName,
             }, onConflict: 'user_id,full_name')
-            .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+            .select('id,full_name,birthday,circle:circles(name,priority_level,color_hex)')
             .single();
         return Map<String, dynamic>.from(result);
       },
@@ -326,13 +318,11 @@ class SupabaseSyncService {
 
     final birthdayRaw = row['birthday'] as String?;
     final birthday = _safeParseBirthday(birthdayRaw);
-    final locationName = (row['location_name'] as String?)?.trim() ?? '';
     final circle = _extractCircleRow(row['circle']);
 
     return SupabaseContactRecord(
       id: id,
       fullName: fullName,
-      locationName: locationName,
       birthday: birthday,
       circleName: (circle?['name'] as String?)?.trim() ?? payload.circleName,
       circlePriority: (circle?['priority_level'] as int?) ?? payload.circlePriority,
@@ -381,11 +371,10 @@ class SupabaseSyncService {
               'circle_id': circleId,
               'full_name': payload.fullName,
               'birthday': birthdayIso,
-              'location_name': payload.locationName,
             })
             .eq('id', contactId)
             .eq('user_id', userId)
-            .select('id,full_name,birthday,location_name,circle:circles(name,priority_level,color_hex)')
+            .select('id,full_name,birthday,circle:circles(name,priority_level,color_hex)')
             .single();
         return Map<String, dynamic>.from(result);
       },
@@ -407,13 +396,11 @@ class SupabaseSyncService {
 
     final birthdayRaw = row['birthday'] as String?;
     final birthday = _safeParseBirthday(birthdayRaw);
-    final locationName = (row['location_name'] as String?)?.trim() ?? '';
     final circle = _extractCircleRow(row['circle']);
 
     return SupabaseContactRecord(
       id: id,
       fullName: fullName,
-      locationName: locationName,
       birthday: birthday,
       circleName: (circle?['name'] as String?)?.trim() ?? payload.circleName,
       circlePriority: (circle?['priority_level'] as int?) ?? payload.circlePriority,
@@ -764,7 +751,6 @@ class SupabaseSyncService {
               'user_id': userId,
               'circle_id': circleId,
               'full_name': profile.name,
-              'location_name': _inferLocation(profile.subtitle),
             })
             .select('id')
             .single();
@@ -857,14 +843,6 @@ class SupabaseSyncService {
 
     debugPrint('No se pudo parsear birthday: $raw');
     return null;
-  }
-
-  String _inferLocation(String subtitle) {
-    final dashIndex = subtitle.indexOf('—');
-    if (dashIndex <= 0) {
-      return subtitle;
-    }
-    return subtitle.substring(0, dashIndex).trim();
   }
 
   Map<String, dynamic>? _extractCircleRow(dynamic circleRaw) {
