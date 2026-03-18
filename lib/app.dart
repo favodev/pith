@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/circle_labels.dart';
 import 'core/models/pith_models.dart';
 import 'core/services/haptics_service.dart';
+import 'core/services/birthday_notification_service.dart';
 import 'core/supabase/supabase_bootstrap.dart';
 import 'core/utils/date_labels.dart';
 import 'core/theme/pith_theme.dart';
@@ -137,9 +138,25 @@ class _PithShellState extends State<PithShell>
           _activeProfileName = _profiles.keys.first;
         }
       });
+
+      unawaited(_syncBirthdayNotifications());
     } catch (_) {
       // Keep local fallback if sync fails.
     }
+  }
+
+  Future<void> _syncBirthdayNotifications() async {
+    final reminders = [
+      for (final contact in _remoteContactsByName.values)
+        if (contact.birthday != null)
+          BirthdayReminderTarget(
+            contactId: contact.id,
+            name: contact.fullName,
+            birthday: contact.birthday!,
+          ),
+    ];
+
+    await BirthdayNotificationService.instance.syncBirthdays(reminders);
   }
 
   bool get _isBusy => _pendingAsyncOps > 0;
@@ -896,6 +913,8 @@ class _PithShellState extends State<PithShell>
       _currentIndex = _profileTabIndex;
       _sparkFeedback = 'Contacto guardado en Supabase: ${profile.name}';
     });
+
+    unawaited(_syncBirthdayNotifications());
   }
 
   _CircleMapping _circleMapping(String circle) {
@@ -1179,6 +1198,8 @@ class _PithShellState extends State<PithShell>
       _activeProfileName = profile.name;
       _sparkFeedback = 'Contacto actualizado en Supabase: ${profile.name}';
     });
+
+    unawaited(_syncBirthdayNotifications());
   }
 
   Future<void> _confirmAndDeleteContact(String name) async {
@@ -1243,6 +1264,8 @@ class _PithShellState extends State<PithShell>
       _currentIndex = _homeTabIndex;
       _sparkFeedback = 'Contacto eliminado en Supabase: $name';
     });
+
+    unawaited(_syncBirthdayNotifications());
   }
 
   void _submitSpark(String value) {
@@ -1330,6 +1353,24 @@ class _PithShellState extends State<PithShell>
     );
 
     final remote = _remoteContactsByName[targetProfile.name];
+    SupabaseContactRecord? maybeBirthdayUpdated;
+    if (remote != null && parsed.inferredBirthday != null) {
+      try {
+        maybeBirthdayUpdated = await SupabaseSyncService.instance.updateContactById(
+          contactId: remote.id,
+          payload: CreateContactPayload(
+            fullName: remote.fullName,
+            circleName: remote.circleName,
+            circlePriority: remote.circlePriority,
+            circleColorHex: remote.circleColorHex,
+            birthday: parsed.inferredBirthday,
+          ),
+        );
+      } catch (_) {
+        maybeBirthdayUpdated = null;
+      }
+    }
+
     if (remote != null) {
       unawaited(
         SupabaseSyncService.instance.saveContactInterests(
@@ -1340,12 +1381,28 @@ class _PithShellState extends State<PithShell>
     }
 
     setState(() {
+      if (maybeBirthdayUpdated != null) {
+        final updatedContact = maybeBirthdayUpdated;
+        _remoteContactsByName[targetProfile.name] = updatedContact;
+        _birthdayContacts = [
+          _birthdayFromRemoteContact(updatedContact),
+          ..._birthdayContacts.where((entry) => entry.name != updatedContact.fullName),
+        ];
+      }
       _profiles[targetProfile.name] = persistedProfile;
       _activeProfileName = targetProfile.name;
         _sparkFeedback = addedLabels.isEmpty
           ? 'Nota guardada en ${targetProfile.name} • Sincronizacion Supabase OK'
           : 'Nota guardada en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sincronizacion Supabase OK';
+
+      if (parsed.inferredBirthday != null) {
+        _sparkFeedback = 'Nota guardada y cumpleanos actualizado para ${targetProfile.name}.';
+      }
     });
+
+    if (maybeBirthdayUpdated != null) {
+      unawaited(_syncBirthdayNotifications());
+    }
   }
 
   Future<void> _recordGiftFeedback({

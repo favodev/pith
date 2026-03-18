@@ -7,10 +7,12 @@ class QuickSparkParseResult {
   const QuickSparkParseResult({
     required this.spark,
     required this.inferredInterests,
+    this.inferredBirthday,
   });
 
   final QuickSparkEntry spark;
   final List<ProfileInterest> inferredInterests;
+  final DateTime? inferredBirthday;
 }
 
 class QuickSparkParser {
@@ -53,6 +55,7 @@ class QuickSparkParser {
         highlighted: true,
       ),
       inferredInterests: _inferInterests(content, profile),
+      inferredBirthday: _inferBirthday(content, now ?? DateTime.now()),
     );
   }
 
@@ -108,5 +111,83 @@ class QuickSparkParser {
       addInterest(const ProfileInterest(label: 'Planes con fecha', icon: Icons.event_rounded));
     }
     return inferred;
+  }
+
+  static DateTime? _inferBirthday(String content, DateTime now) {
+    final normalized = content.toLowerCase();
+    final hasBirthdayIntent = normalized.contains('cumple') || normalized.contains('birthday');
+    if (!hasBirthdayIntent) {
+      return null;
+    }
+
+    final slashMatch = RegExp(r'\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b').firstMatch(normalized);
+    if (slashMatch != null) {
+      final day = int.tryParse(slashMatch.group(1) ?? '');
+      final month = int.tryParse(slashMatch.group(2) ?? '');
+      final yearRaw = int.tryParse(slashMatch.group(3) ?? '');
+      if (day != null && month != null) {
+        final year = yearRaw == null
+            ? now.year
+            : (yearRaw < 100 ? 2000 + yearRaw : yearRaw);
+        final parsed = _safeDate(year: year, month: month, day: day);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+
+    final textMatch = RegExp(
+      r'\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?\b',
+    ).firstMatch(normalized);
+
+    if (textMatch != null) {
+      final day = int.tryParse(textMatch.group(1) ?? '');
+      final monthName = textMatch.group(2);
+      final year = int.tryParse(textMatch.group(3) ?? '') ?? now.year;
+      final month = _monthFromSpanish(monthName);
+
+      if (day != null && month != null) {
+        return _safeDate(year: year, month: month, day: day);
+      }
+    }
+
+    return null;
+  }
+
+  static int? _monthFromSpanish(String? value) {
+    return switch (value) {
+      'enero' => 1,
+      'febrero' => 2,
+      'marzo' => 3,
+      'abril' => 4,
+      'mayo' => 5,
+      'junio' => 6,
+      'julio' => 7,
+      'agosto' => 8,
+      'septiembre' => 9,
+      'octubre' => 10,
+      'noviembre' => 11,
+      'diciembre' => 12,
+      _ => null,
+    };
+  }
+
+  static DateTime? _safeDate({
+    required int year,
+    required int month,
+    required int day,
+  }) {
+    if (month < 1 || month > 12) {
+      return null;
+    }
+
+    final nextMonth = month == 12 ? 1 : month + 1;
+    final nextMonthYear = month == 12 ? year + 1 : year;
+    final maxDay = DateTime(nextMonthYear, nextMonth, 0).day;
+    if (day < 1 || day > maxDay) {
+      return null;
+    }
+
+    return DateTime(year, month, day);
   }
 }
