@@ -1,9 +1,7 @@
 import 'dart:ui';
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/constants/circle_labels.dart';
@@ -90,8 +88,7 @@ class _PithShellState extends State<PithShell>
 
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Inicio', icon: Icons.home_rounded),
-    ShellTabItem(label: 'Pilas', icon: Icons.layers_rounded),
-    ShellTabItem(label: 'Contacto', icon: Icons.person_rounded),
+    ShellTabItem(label: 'Contactos', icon: Icons.layers_rounded),
   ];
 
   @override
@@ -682,6 +679,75 @@ class _PithShellState extends State<PithShell>
     return _activeProfile;
   }
 
+  bool _hasExplicitMention(String value) {
+    return RegExp(r'@[^\s:]+').hasMatch(value);
+  }
+
+  Future<ContactProfile?> _pickContactForSpark() async {
+    if (_profiles.isEmpty || !mounted) {
+      return null;
+    }
+
+    final contacts = _profiles.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    return showModalBottomSheet<ContactProfile>(
+      context: context,
+      backgroundColor: const Color(0xFF101A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Selecciona contacto',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: contacts.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final contact = contacts[index];
+                      return ListTile(
+                        tileColor: Colors.white.withValues(alpha: 0.04),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0x223B4A63),
+                          child: Text(contact.initials),
+                        ),
+                        title: Text(contact.name),
+                        subtitle: Text(
+                          contact.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () => Navigator.of(context).pop(contact),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _sendBirthdayNote(BirthdayContact contact) {
     unawaited(HapticsService.success());
     final targetProfile = _profiles[contact.name];
@@ -736,13 +802,6 @@ class _PithShellState extends State<PithShell>
     });
   }
 
-  void _openProfileFromTab() {
-    setState(() {
-      _profileReturnIndex = _currentIndex == _profileTabIndex ? _homeTabIndex : _currentIndex;
-      _currentIndex = _profileTabIndex;
-    });
-  }
-
   void _backFromProfile() {
     setState(() {
       _currentIndex = _profileReturnIndex;
@@ -750,11 +809,6 @@ class _PithShellState extends State<PithShell>
   }
 
   void _onNavTap(int index) {
-    if (index == _profileTabIndex) {
-      _openProfileFromTab();
-      return;
-    }
-
     unawaited(HapticsService.select());
 
     setState(() {
@@ -802,41 +856,6 @@ class _PithShellState extends State<PithShell>
                 const SizedBox(height: 18),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () async {
-                      final payload = {
-                        'generated_at': DateTime.now().toIso8601String(),
-                        'contacts': [
-                          for (final profile in _profiles.values)
-                            {
-                              'name': profile.name,
-                              'subtitle': profile.subtitle,
-                              'initials': profile.initials,
-                              'interests': [for (final interest in profile.interests) interest.label],
-                              'sparks': [
-                                for (final spark in profile.sparks)
-                                  {
-                                    'date': spark.dateLabel,
-                                    'content': spark.content,
-                                  },
-                              ],
-                            },
-                        ],
-                      };
-                      await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(payload)));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Backup copiado al portapapeles en formato JSON.')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.file_download_rounded),
-                    label: const Text('Exportar backup (JSON)'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
                   child: FilledButton.tonal(
                     onPressed: () async {
                       SupabaseSyncService.instance.clearSessionCache();
@@ -876,12 +895,12 @@ class _PithShellState extends State<PithShell>
           ),
         ),
       );
-    } on SupabaseSyncException catch (error) {
+    } on SupabaseSyncException {
       if (!mounted) {
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo guardar el contacto. ${error.message}';
+        _sparkFeedback = 'No se pudo guardar el contacto. Intenta nuevamente.';
       });
       return;
     } catch (_) {
@@ -895,7 +914,7 @@ class _PithShellState extends State<PithShell>
     if (record == null) {
       unawaited(HapticsService.warning());
       setState(() {
-        _sparkFeedback = 'No se pudo guardar en Supabase. Revisa la conexion e intenta de nuevo.';
+        _sparkFeedback = 'No se pudo guardar el contacto. Revisa tu conexion e intenta de nuevo.';
       });
       return;
     }
@@ -915,9 +934,8 @@ class _PithShellState extends State<PithShell>
         ..._birthdayContacts.where((item) => item.name != savedRecord.fullName),
       ];
       _activeProfileName = profile.name;
-      _profileReturnIndex = _currentIndex;
-      _currentIndex = _profileTabIndex;
-      _sparkFeedback = 'Contacto guardado en Supabase: ${profile.name}';
+      _currentIndex = _birthdaysTabIndex;
+      _sparkFeedback = 'Contacto guardado: ${profile.name}';
     });
 
     unawaited(_syncBirthdayNotifications());
@@ -962,7 +980,7 @@ class _PithShellState extends State<PithShell>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Acciones de contacto sincronizadas con Supabase.',
+                  'Acciones del contacto.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF9AA8C0),
                   ),
@@ -1162,12 +1180,12 @@ class _PithShellState extends State<PithShell>
           ),
         ),
       );
-    } on SupabaseSyncException catch (error) {
+    } on SupabaseSyncException {
       if (!mounted) {
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo actualizar el contacto. ${error.message}';
+        _sparkFeedback = 'No se pudo actualizar el contacto. Intenta nuevamente.';
       });
       return;
     } catch (_) {
@@ -1177,7 +1195,7 @@ class _PithShellState extends State<PithShell>
     if (!mounted || updated == null) {
       unawaited(HapticsService.warning());
       setState(() {
-        _sparkFeedback = 'No se pudo actualizar en Supabase. Verifica datos e intenta nuevamente.';
+        _sparkFeedback = 'No se pudo actualizar el contacto. Verifica los datos e intenta nuevamente.';
       });
       return;
     }
@@ -1202,7 +1220,7 @@ class _PithShellState extends State<PithShell>
       ];
 
       _activeProfileName = profile.name;
-      _sparkFeedback = 'Contacto actualizado en Supabase: ${profile.name}';
+      _sparkFeedback = 'Contacto actualizado: ${profile.name}';
     });
 
     unawaited(_syncBirthdayNotifications());
@@ -1214,7 +1232,7 @@ class _PithShellState extends State<PithShell>
       builder: (context) {
         return AlertDialog(
           title: const Text('Eliminar contacto?'),
-          content: Text('Esto eliminara permanentemente a $name y sus notas en Supabase.'),
+          content: Text('Esto eliminara permanentemente a $name y sus notas.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -1238,12 +1256,12 @@ class _PithShellState extends State<PithShell>
   Future<void> _deleteContact(String name) async {
     try {
       await _runBusy(() => SupabaseSyncService.instance.deleteContactByName(name));
-    } on SupabaseSyncException catch (error) {
+    } on SupabaseSyncException {
       if (!mounted) {
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo eliminar el contacto. ${error.message}';
+        _sparkFeedback = 'No se pudo eliminar el contacto. Intenta nuevamente.';
       });
       return;
     } catch (_) {
@@ -1251,7 +1269,7 @@ class _PithShellState extends State<PithShell>
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo eliminar en Supabase. Intenta nuevamente.';
+        _sparkFeedback = 'No se pudo eliminar el contacto. Intenta nuevamente.';
       });
       return;
     }
@@ -1268,13 +1286,13 @@ class _PithShellState extends State<PithShell>
       _birthdayContacts = _birthdayContacts.where((item) => item.name != name).toList();
       _activeProfileName = _profiles.isEmpty ? '' : _profiles.keys.first;
       _currentIndex = _homeTabIndex;
-      _sparkFeedback = 'Contacto eliminado en Supabase: $name';
+      _sparkFeedback = 'Contacto eliminado: $name';
     });
 
     unawaited(_syncBirthdayNotifications());
   }
 
-  void _submitSpark(String value) {
+  Future<void> _submitSparkFromHome(String value) async {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
       setState(() {
@@ -1285,12 +1303,58 @@ class _PithShellState extends State<PithShell>
 
     if (_profiles.isEmpty) {
       setState(() {
-        _sparkFeedback = 'No hay contactos aun. Crea uno desde Pilas con el boton +.';
+        _sparkFeedback = 'No hay contactos aun. Crea uno desde Contactos con el boton +.';
       });
       return;
     }
 
-    final targetProfile = _resolveProfileForSpark(trimmed);
+    ContactProfile targetProfile;
+    if (_hasExplicitMention(trimmed)) {
+      targetProfile = _resolveProfileForSpark(trimmed);
+    } else {
+      final selected = await _pickContactForSpark();
+      if (!mounted || selected == null) {
+        return;
+      }
+      targetProfile = selected;
+    }
+
+    final parsed = QuickSparkParser.parse(input: trimmed, profile: targetProfile);
+    if (parsed == null) {
+      unawaited(HapticsService.warning());
+      setState(() {
+        _sparkFeedback = 'Nota no valida. Escribe una nota (ej: @Juan ...).';
+      });
+      return;
+    }
+
+    unawaited(_saveSparkToSupabase(targetProfile: targetProfile, parsed: parsed));
+  }
+
+  void _submitSparkForActiveProfile(String value) {
+    final target = _profiles[_activeProfileName] ?? _activeProfile;
+    _submitSparkForProfile(value: value, targetProfile: target);
+  }
+
+  void _submitSparkForProfile({
+    required String value,
+    required ContactProfile targetProfile,
+  }) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        _sparkFeedback = 'Escribe una nota antes de guardar.';
+      });
+      return;
+    }
+
+    if (_profiles.isEmpty) {
+      setState(() {
+        _sparkFeedback = 'No hay contactos aun. Crea uno desde Contactos con el boton +.';
+      });
+      return;
+    }
+
     final parsed = QuickSparkParser.parse(input: trimmed, profile: targetProfile);
     if (parsed == null) {
       unawaited(HapticsService.warning());
@@ -1314,13 +1378,13 @@ class _PithShellState extends State<PithShell>
           spark: parsed.spark,
         ),
       );
-    } on SupabaseSyncException catch (error) {
+    } on SupabaseSyncException {
       unawaited(HapticsService.warning());
       if (!mounted) {
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo guardar la nota. ${error.message}';
+        _sparkFeedback = 'No se pudo guardar la nota. Intenta nuevamente.';
       });
       return;
     } catch (_) {
@@ -1329,7 +1393,7 @@ class _PithShellState extends State<PithShell>
         return;
       }
       setState(() {
-        _sparkFeedback = 'No se pudo guardar la nota en Supabase. Intenta nuevamente.';
+        _sparkFeedback = 'No se pudo guardar la nota. Intenta nuevamente.';
       });
       return;
     }
@@ -1398,8 +1462,8 @@ class _PithShellState extends State<PithShell>
       _profiles[targetProfile.name] = persistedProfile;
       _activeProfileName = targetProfile.name;
         _sparkFeedback = addedLabels.isEmpty
-          ? 'Nota guardada en ${targetProfile.name} • Sincronizacion Supabase OK'
-          : 'Nota guardada en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sincronizacion Supabase OK';
+          ? 'Nota guardada para ${targetProfile.name}.'
+          : 'Nota guardada para ${targetProfile.name}. Nuevos tags: ${addedLabels.join(', ')}';
 
       if (parsed.inferredBirthday != null) {
         _sparkFeedback = 'Nota guardada y cumpleanos actualizado para ${targetProfile.name}.';
@@ -1465,7 +1529,9 @@ class _PithShellState extends State<PithShell>
         hasContacts: _profiles.isNotEmpty,
         onAddFirstContact: _onAddContact,
         onOpenAccount: _openAccountSheet,
-        onSubmitSpark: _submitSpark,
+        onSubmitSpark: (value) {
+          unawaited(_submitSparkFromHome(value));
+        },
         sparkFeedback: _sparkFeedback,
       ),
       BirthdayStackScreen(
@@ -1474,11 +1540,21 @@ class _PithShellState extends State<PithShell>
         onBack: () => setState(() => _currentIndex = 0),
         onOpenSearch: _openSearch,
         onSendNote: _sendBirthdayNote,
+        onOpenContact: (contact) {
+          if (!_profiles.containsKey(contact.name)) {
+            return;
+          }
+          setState(() {
+            _activeProfileName = contact.name;
+            _profileReturnIndex = _birthdaysTabIndex;
+            _currentIndex = _profileTabIndex;
+          });
+        },
         onAddContact: _onAddContact,
       ),
       ProfileCanvasScreen(
         profile: _activeProfile,
-        onSubmitSpark: _submitSpark,
+        onSubmitSpark: _submitSparkForActiveProfile,
         onBack: _backFromProfile,
         onOpenContactActions: _openActiveProfileActions,
         onGiftFeedback: (suggestion, useful) {
@@ -1545,7 +1621,7 @@ class _PithShellState extends State<PithShell>
             ),
         ],
       ),
-        bottomNavigationBar: _noteReceipt != null
+        bottomNavigationBar: (_noteReceipt != null || _currentIndex == _profileTabIndex)
           ? null
           : Padding(
               padding: EdgeInsets.fromLTRB(

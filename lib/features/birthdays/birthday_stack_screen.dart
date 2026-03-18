@@ -11,6 +11,7 @@ class BirthdayStackScreen extends StatefulWidget {
     required this.onBack,
     required this.onOpenSearch,
     required this.onSendNote,
+    required this.onOpenContact,
     required this.onAddContact,
   });
 
@@ -19,6 +20,7 @@ class BirthdayStackScreen extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onOpenSearch;
   final ValueChanged<BirthdayContact> onSendNote;
+  final ValueChanged<BirthdayContact> onOpenContact;
   final VoidCallback onAddContact;
 
   @override
@@ -183,6 +185,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                               for (final contact in leftColumn) ...[
                                 BirthdayCard(
                                   contact: contact,
+                                  onOpenContact: () => widget.onOpenContact(contact),
                                   onSendNote: contact.actionIcon == null
                                       ? null
                                       : () => widget.onSendNote(contact),
@@ -199,6 +202,7 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                               for (final contact in rightColumn) ...[
                                 BirthdayCard(
                                   contact: contact,
+                                  onOpenContact: () => widget.onOpenContact(contact),
                                   onSendNote: contact.actionIcon == null
                                       ? null
                                       : () => widget.onSendNote(contact),
@@ -596,10 +600,16 @@ class _BirthdayTab extends StatelessWidget {
 }
 
 class BirthdayCard extends StatelessWidget {
-  const BirthdayCard({super.key, required this.contact, this.onSendNote});
+  const BirthdayCard({
+    super.key,
+    required this.contact,
+    this.onSendNote,
+    this.onOpenContact,
+  });
 
   final BirthdayContact contact;
   final VoidCallback? onSendNote;
+  final VoidCallback? onOpenContact;
 
   @override
   Widget build(BuildContext context) {
@@ -607,9 +617,12 @@ class BirthdayCard extends StatelessWidget {
     final normalizedHeightFactor = contact.heightFactor.clamp(0.75, 1.15);
     final aspectRatio = (0.82 / normalizedHeightFactor).clamp(0.72, 0.95);
 
-    return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: Container(
+    return GestureDetector(
+      onTap: onOpenContact,
+      behavior: HitTestBehavior.opaque,
+      child: AspectRatio(
+        aspectRatio: aspectRatio,
+        child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(34),
           border: Border.all(
@@ -734,6 +747,7 @@ class BirthdayCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
