@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/pith_models.dart';
 
-class ProfileCanvasScreen extends StatelessWidget {
+class ProfileCanvasScreen extends StatefulWidget {
   const ProfileCanvasScreen({
     super.key,
     required this.profile,
@@ -19,8 +19,39 @@ class ProfileCanvasScreen extends StatelessWidget {
   final String? sparkFeedback;
 
   @override
+  State<ProfileCanvasScreen> createState() => _ProfileCanvasScreenState();
+}
+
+class _ProfileCanvasScreenState extends State<ProfileCanvasScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileCanvasScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.name != widget.profile.name && _query.isNotEmpty) {
+      _searchController.clear();
+      _query = '';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final normalizedQuery = _query.trim().toLowerCase();
+    final filteredSparks = normalizedQuery.isEmpty
+        ? widget.profile.sparks
+        : widget.profile.sparks
+            .where((spark) =>
+                spark.content.toLowerCase().contains(normalizedQuery) ||
+                spark.dateLabel.toLowerCase().contains(normalizedQuery))
+            .toList();
 
     return Stack(
       children: [
@@ -35,7 +66,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     InkWell(
-                      onTap: onBack,
+                      onTap: widget.onBack,
                       borderRadius: BorderRadius.circular(999),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -60,7 +91,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: onOpenContactActions,
+                          onPressed: widget.onOpenContactActions,
                           icon: const Icon(Icons.edit_note_rounded),
                           color: const Color(0x889AA8C0),
                         ),
@@ -91,7 +122,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            profile.initials,
+                            widget.profile.initials,
                             style: textTheme.displaySmall?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFFF4EBD0),
@@ -105,7 +136,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
                 Text(
-                  profile.name,
+                  widget.profile.name,
                   textAlign: TextAlign.center,
                   style: textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w300,
@@ -114,7 +145,7 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  profile.subtitle,
+                  widget.profile.subtitle,
                   textAlign: TextAlign.center,
                   style: textTheme.labelLarge?.copyWith(
                     color: const Color(0x889AA8C0),
@@ -133,17 +164,43 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Agrega una nota nueva para ${profile.name} desde aqui.',
+                  'Agrega una nota nueva para ${widget.profile.name} desde aqui.',
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     color: const Color(0x889AA8C0),
                   ),
                 ),
-                const SizedBox(height: 30),
-                for (final spark in profile.sparks) ...[
-                  _SparkTimelineEntry(entry: spark),
-                  const SizedBox(height: 34),
-                ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _query = value),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar en notas',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _query.trim().isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _query = '');
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (filteredSparks.isEmpty)
+                  Text(
+                    'No hay notas para esa búsqueda.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0x889AA8C0),
+                    ),
+                  )
+                else
+                  for (final spark in filteredSparks) ...[
+                    _SparkTimelineEntry(entry: spark),
+                    const SizedBox(height: 34),
+                  ],
                 const SizedBox(height: 170),
                   ],
                 ),
@@ -158,9 +215,9 @@ class ProfileCanvasScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (sparkFeedback != null) ...[
+              if (widget.sparkFeedback != null) ...[
                 Text(
-                  sparkFeedback!,
+                  widget.sparkFeedback!,
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFFF4C025),
@@ -170,8 +227,8 @@ class ProfileCanvasScreen extends StatelessWidget {
                 const SizedBox(height: 10),
               ],
               _SparkComposer(
-                profileName: profile.name,
-                onSubmitted: onSubmitSpark,
+                profileName: widget.profile.name,
+                onSubmitted: widget.onSubmitSpark,
               ),
             ],
           ),

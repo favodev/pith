@@ -8,6 +8,8 @@ import 'core/constants/circle_labels.dart';
 import 'core/models/pith_models.dart';
 import 'core/services/haptics_service.dart';
 import 'core/services/birthday_notification_service.dart';
+import 'core/services/pending_contact_sync_queue_service.dart';
+import 'core/services/pending_spark_sync_queue_service.dart';
 import 'core/supabase/supabase_bootstrap.dart';
 import 'core/utils/date_labels.dart';
 import 'core/theme/pith_theme.dart';
@@ -79,6 +81,11 @@ class _PithShellState extends State<PithShell>
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   Timer? _sparkFeedbackTimer;
+  int _pendingSparkSyncCount = 0;
+  int _pendingContactSyncCount = 0;
+  bool _isSyncingPendingSparks = false;
+  bool _isSyncingPendingContacts = false;
+  Timer? _pendingSparkSyncTimer;
   late Map<String, ContactProfile> _profiles;
   late Map<String, SupabaseContactRecord> _remoteContactsByName;
   late List<BirthdayContact> _birthdayContacts;
@@ -105,6 +112,23 @@ class _PithShellState extends State<PithShell>
     );
 
     _hydrateFromSupabase();
+    unawaited(_refreshPendingSparkSyncCount());
+    unawaited(_refreshPendingContactSyncCount());
+    _startPendingSparkAutoSync();
+  }
+
+  void _startPendingSparkAutoSync() {
+    _pendingSparkSyncTimer?.cancel();
+    _pendingSparkSyncTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(_flushAllPendingSync()),
+    );
+    unawaited(_flushAllPendingSync());
+  }
+
+  Future<void> _flushAllPendingSync() async {
+    await _flushPendingContacts();
+    await _flushPendingSparks();
   }
 
   Future<void> _hydrateFromSupabase() async {
@@ -138,6 +162,8 @@ class _PithShellState extends State<PithShell>
       });
 
       unawaited(_syncBirthdayNotifications());
+      unawaited(_flushPendingContacts());
+      unawaited(_flushPendingSparks());
     } catch (_) {
       // Keep local fallback if sync fails.
     }
@@ -145,11 +171,11 @@ class _PithShellState extends State<PithShell>
 
   Future<void> _syncBirthdayNotifications() async {
     final reminders = [
-      for (final contact in _remoteContactsByName.values)
+      for (final contact in _birthdayContacts)
         if (contact.birthday != null)
           BirthdayReminderTarget(
-            contactId: contact.id,
-            name: contact.fullName,
+            contactId: _remoteContactsByName[contact.name]?.id ?? contact.name.trim().toLowerCase(),
+            name: contact.name,
             birthday: contact.birthday!,
           ),
     ];
@@ -202,9 +228,311 @@ class _PithShellState extends State<PithShell>
     });
   }
 
+  Future<void> _refreshPendingSparkSyncCount() async {
+    final count = await PendingSparkSyncQueueService.instance.count();
+    if (!mounted) {
+      _pendingSparkSyncCount = count;
+      return;
+    }
+    setState(() => _pendingSparkSyncCount = count);
+  }
+
+  Future<void> _refreshPendingContactSyncCount() async {
+    final count = await PendingContactSyncQueueService.instance.count();
+    if (!mounted) {
+      _pendingContactSyncCount = count;
+      return;
+    }
+    setState(() => _pendingContactSyncCount = count);
+  }
+
+  Future<void> _flushPendingContacts() async {
+    if (_isSyncingPendingContacts || !SupabaseSyncService.instance.isEnabled) {
+      return;
+    }
+
+    _isSyncingPendingContacts = true;
+    try {
+      final queued = await PendingContactSyncQueueService.instance.readAll();
+      if (queued.isEmpty) {
+        if (mounted && _pendingContactSyncCount != 0) {
+          setState(() => _pendingContactSyncCount = 0);
+        }
+        return;
+      }
+
+      final remaining = <PendingContactSyncItem>[];
+      var synced = 0;
+
+      for (final item in queued) {
+        try {
+          switch (item.operation) {
+            case PendingContactOperation.upsert:
+              final birthday = item.birthdayIso == null ? null : DateTime.tryParse(item.birthdayIso!);
+              final updated = await SupabaseSyncService.instance.createOrUpdateContact(
+                CreateContactPayload(
+                  fullName: item.fullName,
+                  circleName: item.circleName!,
+                  circlePriority: item.circlePriority!,
+                  circleColorHex: item.circleColorHex!,
+                  birthday: birthday,
+                ),
+              );
+
+              if (updated == null) {
+                throw StateError('No se pudo sincronizar contacto pendiente.');
+              }
+            case PendingContactOperation.delete:
+              await SupabaseSyncService.instance.deleteContactByName(item.fullName);
+          }
+          synced++;
+        } catch (_) {
+          remaining.add(item);
+        }
+      }
+
+      await PendingContactSyncQueueService.instance.replaceAll(remaining);
+      if (mounted) {
+        setState(() => _pendingContactSyncCount = remaining.length);
+      } else {
+        _pendingContactSyncCount = remaining.length;
+      }
+
+      if (synced > 0) {
+        _setSparkFeedback('Se sincronizaron $synced cambio(s) pendientes de contactos.');
+        unawaited(_hydrateFromSupabase());
+      }
+    } finally {
+      _isSyncingPendingContacts = false;
+    }
+  }
+
+  Future<void> _flushPendingSparks() async {
+    if (_isSyncingPendingSparks || !SupabaseSyncService.instance.isEnabled) {
+      return;
+    }
+
+    _isSyncingPendingSparks = true;
+    try {
+      final queued = await PendingSparkSyncQueueService.instance.readAll();
+      if (queued.isEmpty) {
+        if (mounted && _pendingSparkSyncCount != 0) {
+          setState(() => _pendingSparkSyncCount = 0);
+        }
+        return;
+      }
+
+      final remaining = <PendingSparkSyncItem>[];
+      var synced = 0;
+      for (final item in queued) {
+        try {
+          final profile = ContactProfile(
+            name: item.contactName,
+            subtitle: item.contactSubtitle,
+            initials: item.contactInitials,
+            interests: const [],
+            sparks: const [],
+          );
+          final spark = QuickSparkEntry(
+            dateLabel: _formatDate(DateTime.now()),
+            content: item.content,
+            iconType: item.iconType,
+            highlighted: true,
+          );
+
+          await SupabaseSyncService.instance.saveSpark(profile: profile, spark: spark);
+          synced++;
+        } catch (_) {
+          remaining.add(item);
+        }
+      }
+
+      await PendingSparkSyncQueueService.instance.replaceAll(remaining);
+      if (mounted) {
+        setState(() => _pendingSparkSyncCount = remaining.length);
+      } else {
+        _pendingSparkSyncCount = remaining.length;
+      }
+
+      if (synced > 0) {
+        _setSparkFeedback('Se sincronizaron $synced nota(s) pendientes.');
+      }
+    } finally {
+      _isSyncingPendingSparks = false;
+    }
+  }
+
+  Future<void> _saveSparkOffline({
+    required ContactProfile targetProfile,
+    required QuickSparkParseResult parsed,
+  }) async {
+    final latestProfile = _profiles[targetProfile.name] ?? targetProfile;
+    final updatedInterests = [...latestProfile.interests, ...parsed.inferredInterests];
+    final dedupedInterests = <ProfileInterest>[];
+    final seenInterests = <String>{};
+    for (final interest in updatedInterests) {
+      final key = interest.label.trim().toLowerCase();
+      if (seenInterests.add(key)) {
+        dedupedInterests.add(interest);
+      }
+    }
+
+    final persistedProfile = latestProfile.copyWith(
+      interests: dedupedInterests.take(10).toList(),
+      sparks: [parsed.spark, ...latestProfile.sparks],
+    );
+
+    if (mounted) {
+      setState(() {
+        _profiles[targetProfile.name] = persistedProfile;
+        _activeProfileName = targetProfile.name;
+      });
+    }
+
+    await PendingSparkSyncQueueService.instance.enqueue(
+      PendingSparkSyncItem(
+        contactName: targetProfile.name,
+        contactInitials: targetProfile.initials,
+        contactSubtitle: targetProfile.subtitle,
+        content: parsed.spark.content,
+        iconType: parsed.spark.iconType,
+      ),
+    );
+
+    await _refreshPendingSparkSyncCount();
+    _setSparkFeedback(
+      'Sin conexión: nota guardada en este dispositivo. Se sincronizará automáticamente al volver internet.',
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  DateTime? _birthdayForContactName(String name) {
+    for (final birthday in _birthdayContacts) {
+      if (birthday.name.trim().toLowerCase() == name.trim().toLowerCase()) {
+        return birthday.birthday;
+      }
+    }
+    return null;
+  }
+
+  String? _birthdayIso(DateTime? birthday) {
+    if (birthday == null) {
+      return null;
+    }
+    return '${birthday.year.toString().padLeft(4, '0')}-'
+        '${birthday.month.toString().padLeft(2, '0')}-'
+        '${birthday.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _saveContactOffline({
+    required CreateContactInput input,
+    String? oldName,
+  }) async {
+    final mapping = _circleMapping(input.circleName);
+    final oldProfile = oldName == null ? null : _profiles[oldName];
+
+    final updatedProfile = ContactProfile(
+      name: input.fullName,
+      subtitle: _displayCircleName(input.circleName),
+      initials: _initialsFromName(input.fullName),
+      interests: oldProfile?.interests ?? const [],
+      sparks: oldProfile?.sparks ?? const [],
+    );
+
+    final birthdayContact = BirthdayContact(
+      name: input.fullName,
+      relation: _displayCircleName(input.circleName),
+      birthday: input.birthday,
+      subtitle: _birthdaySubtitle(input.birthday),
+      initials: _initialsFromName(input.fullName),
+      accent: _circleAccentColor(input.circleName, fallbackHex: mapping.colorHex),
+      priority: (_daysUntilBirthday(input.birthday) ?? 999) <= 14
+          ? BirthdayPriority.highlighted
+          : BirthdayPriority.standard,
+      group: _groupFromRemoteCircle(input.circleName),
+      heightFactor: 0.92 + ((input.fullName.length % 5) * 0.1),
+      actionIcon: mapping.priority <= 2 ? Icons.card_giftcard_rounded : Icons.auto_awesome_rounded,
+    );
+
+    if (mounted) {
+      setState(() {
+        if (oldName != null && oldName.trim().toLowerCase() != input.fullName.trim().toLowerCase()) {
+          _profiles.remove(oldName);
+          _remoteContactsByName.remove(oldName);
+          _birthdayContacts = _birthdayContacts.where((item) => item.name != oldName).toList();
+        }
+
+        _remoteContactsByName.remove(input.fullName);
+        _profiles[input.fullName] = updatedProfile;
+        _birthdayContacts = [
+          birthdayContact,
+          ..._birthdayContacts.where((item) => item.name != input.fullName),
+        ];
+        _activeProfileName = input.fullName;
+        _currentIndex = _birthdaysTabIndex;
+      });
+    }
+
+    if (oldName != null && oldName.trim().toLowerCase() != input.fullName.trim().toLowerCase()) {
+      await PendingContactSyncQueueService.instance.enqueue(
+        PendingContactSyncItem.delete(fullName: oldName),
+      );
+    }
+
+    await PendingContactSyncQueueService.instance.enqueue(
+      PendingContactSyncItem.upsert(
+        fullName: input.fullName,
+        circleName: input.circleName,
+        circlePriority: mapping.priority,
+        circleColorHex: mapping.colorHex,
+        birthdayIso: _birthdayIso(input.birthday),
+      ),
+    );
+
+    await _refreshPendingContactSyncCount();
+    _setSparkFeedback(
+      'Sin conexión: contacto guardado en este dispositivo. Se sincronizará automáticamente al volver internet.',
+      duration: const Duration(seconds: 5),
+    );
+    unawaited(_syncBirthdayNotifications());
+  }
+
+  Future<void> _deleteContactOffline(String name) async {
+    if (mounted) {
+      setState(() {
+        _remoteContactsByName.remove(name);
+        _profiles.remove(name);
+        _birthdayContacts = _birthdayContacts.where((item) => item.name != name).toList();
+        _activeProfileName = _profiles.isEmpty ? '' : _profiles.keys.first;
+        _currentIndex = _homeTabIndex;
+      });
+    }
+
+    await PendingContactSyncQueueService.instance.enqueue(
+      PendingContactSyncItem.delete(fullName: name),
+    );
+    await _refreshPendingContactSyncCount();
+    _setSparkFeedback(
+      'Sin conexión: contacto eliminado en este dispositivo. Se sincronizará automáticamente al volver internet.',
+      duration: const Duration(seconds: 5),
+    );
+    unawaited(_syncBirthdayNotifications());
+  }
+
+  String _pendingSyncBannerText() {
+    if (_pendingSparkSyncCount > 0 && _pendingContactSyncCount > 0) {
+      return 'Hay $_pendingSparkSyncCount nota(s) y $_pendingContactSyncCount contacto(s) pendientes sin internet. Se sincronizarán automáticamente.';
+    }
+    if (_pendingContactSyncCount > 0) {
+      return 'Hay $_pendingContactSyncCount contacto(s) pendientes sin internet. Se sincronizarán automáticamente.';
+    }
+    return 'Hay $_pendingSparkSyncCount nota(s) guardadas sin internet. Se sincronizarán automáticamente.';
+  }
+
   @override
   void dispose() {
     _sparkFeedbackTimer?.cancel();
+    _pendingSparkSyncTimer?.cancel();
     _fanOutController.dispose();
     super.dispose();
   }
@@ -944,12 +1272,6 @@ class _PithShellState extends State<PithShell>
           ),
         ),
       );
-    } on SupabaseSyncException {
-      if (!mounted) {
-        return;
-      }
-      _setSparkFeedback('No se pudo guardar el contacto. Intenta nuevamente.');
-      return;
     } catch (_) {
       record = null;
     }
@@ -959,8 +1281,8 @@ class _PithShellState extends State<PithShell>
     }
 
     if (record == null) {
+      await _saveContactOffline(input: input);
       unawaited(HapticsService.warning());
-      _setSparkFeedback('No se pudo guardar el contacto. Revisa tu conexión e intenta de nuevo.');
       return;
     }
 
@@ -1064,18 +1386,21 @@ class _PithShellState extends State<PithShell>
   }
 
   Future<void> _editContact(String oldName) async {
-    final existing = _remoteContactsByName[oldName];
-    if (existing == null) {
+    final existingRemote = _remoteContactsByName[oldName];
+    final existingProfile = _profiles[oldName];
+    if (existingRemote == null && existingProfile == null) {
       _setSparkFeedback('No se encontro el contacto para editar. Recarga la app e intenta de nuevo.');
       return;
     }
 
+    final existingBirthday = _birthdayForContactName(oldName);
+
     final input = await showEditContactSheet(
       context,
       initial: ContactFormInitialData(
-        fullName: existing.fullName,
-        circleName: existing.circleName,
-        birthday: existing.birthday,
+        fullName: existingRemote?.fullName ?? existingProfile!.name,
+        circleName: existingRemote?.circleName ?? existingProfile!.subtitle,
+        birthday: existingRemote?.birthday ?? existingBirthday,
       ),
     );
 
@@ -1083,35 +1408,54 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
+    final normalizedNew = input.fullName.trim().toLowerCase();
+    final normalizedOld = oldName.trim().toLowerCase();
+    final alreadyExists = _profiles.keys.any(
+      (name) => name.trim().toLowerCase() == normalizedNew && name.trim().toLowerCase() != normalizedOld,
+    );
+    if (alreadyExists) {
+      _setSparkFeedback('Ese contacto ya existe. Elige otro nombre para continuar.');
+      return;
+    }
+
     final mapping = _circleMapping(input.circleName);
 
     SupabaseContactRecord? updated;
     try {
-      updated = await _runBusy(
-        () => SupabaseSyncService.instance.updateContactById(
-          contactId: existing.id,
-          payload: CreateContactPayload(
+      updated = await _runBusy(() {
+        if (existingRemote != null) {
+          return SupabaseSyncService.instance.updateContactById(
+            contactId: existingRemote.id,
+            payload: CreateContactPayload(
+              fullName: input.fullName,
+              circleName: input.circleName,
+              circlePriority: mapping.priority,
+              circleColorHex: mapping.colorHex,
+              birthday: input.birthday,
+            ),
+          );
+        }
+        return SupabaseSyncService.instance.createOrUpdateContact(
+          CreateContactPayload(
             fullName: input.fullName,
             circleName: input.circleName,
             circlePriority: mapping.priority,
             circleColorHex: mapping.colorHex,
             birthday: input.birthday,
           ),
-        ),
-      );
-    } on SupabaseSyncException {
-      if (!mounted) {
-        return;
-      }
-      _setSparkFeedback('No se pudo actualizar el contacto. Intenta nuevamente.');
-      return;
+        );
+      });
     } catch (_) {
       updated = null;
     }
 
-    if (!mounted || updated == null) {
+    if (!mounted) {
+      return;
+    }
+
+    if (updated == null) {
+      await _saveContactOffline(input: input, oldName: oldName);
       unawaited(HapticsService.warning());
-      _setSparkFeedback('No se pudo actualizar el contacto. Verifica los datos e intenta nuevamente.');
       return;
     }
 
@@ -1172,17 +1516,9 @@ class _PithShellState extends State<PithShell>
   Future<void> _deleteContact(String name) async {
     try {
       await _runBusy(() => SupabaseSyncService.instance.deleteContactByName(name));
-    } on SupabaseSyncException {
-      if (!mounted) {
-        return;
-      }
-      _setSparkFeedback('No se pudo eliminar el contacto. Intenta nuevamente.');
-      return;
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _setSparkFeedback('No se pudo eliminar el contacto. Intenta nuevamente.');
+      await _deleteContactOffline(name);
+      unawaited(HapticsService.warning());
       return;
     }
 
@@ -1203,6 +1539,7 @@ class _PithShellState extends State<PithShell>
     _setSparkFeedback('Contacto eliminado: $name');
 
     unawaited(_syncBirthdayNotifications());
+    unawaited(_flushPendingContacts());
   }
 
   Future<void> _submitSparkFromHome(String value) async {
@@ -1284,14 +1621,14 @@ class _PithShellState extends State<PithShell>
       if (!mounted) {
         return;
       }
-      _setSparkFeedback('No se pudo guardar la nota. Intenta nuevamente.');
+      await _saveSparkOffline(targetProfile: targetProfile, parsed: parsed);
       return;
     } catch (_) {
       unawaited(HapticsService.warning());
       if (!mounted) {
         return;
       }
-      _setSparkFeedback('No se pudo guardar la nota. Intenta nuevamente.');
+      await _saveSparkOffline(targetProfile: targetProfile, parsed: parsed);
       return;
     }
 
@@ -1371,6 +1708,8 @@ class _PithShellState extends State<PithShell>
     if (maybeBirthdayUpdated != null) {
       unawaited(_syncBirthdayNotifications());
     }
+
+    unawaited(_flushPendingSparks());
   }
 
   @override
@@ -1467,6 +1806,41 @@ class _PithShellState extends State<PithShell>
                 minHeight: 2,
                 color: const Color(0xFFF4C025),
                 backgroundColor: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+          if (_pendingSparkSyncCount > 0 || _pendingContactSyncCount > 0)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + (_isBusy ? 6 : 10),
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF12253B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x335AA8FF)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_upload_rounded, size: 18, color: Color(0xFF8EC6FF)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _pendingSyncBannerText(),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFFD7EAFF),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: (_isSyncingPendingSparks || _isSyncingPendingContacts)
+                          ? null
+                          : () => unawaited(_flushAllPendingSync()),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
