@@ -479,32 +479,6 @@ class SupabaseSyncService {
     );
   }
 
-  Future<void> saveGiftFeedback({
-    required String contactId,
-    required String suggestionTitle,
-    required bool useful,
-  }) async {
-    if (!isEnabled) {
-      return;
-    }
-
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      return;
-    }
-
-    await _withRetry<void>(
-      () async {
-        await _client.from('gift_feedback').insert({
-          'contact_id': contactId,
-          'suggestion_title': suggestionTitle,
-          'was_useful': useful,
-        });
-      },
-      errorContext: 'guardar feedback de regalo',
-    );
-  }
-
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
     Set<String> contactNames,
   ) async {

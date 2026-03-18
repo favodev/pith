@@ -1456,45 +1456,6 @@ class _PithShellState extends State<PithShell>
     }
   }
 
-  Future<void> _recordGiftFeedback({
-    required String profileName,
-    required String suggestionTitle,
-    required bool useful,
-  }) async {
-    final remote = _remoteContactsByName[profileName];
-    if (remote == null) {
-      return;
-    }
-
-    try {
-      await _runBusy(
-        () => SupabaseSyncService.instance.saveGiftFeedback(
-          contactId: remote.id,
-          suggestionTitle: suggestionTitle,
-          useful: useful,
-        ),
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _sparkFeedback = 'No se pudo guardar feedback de regalo.';
-      });
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _sparkFeedback = useful
-          ? 'Feedback guardado: sugerencia util para $profileName.'
-          : 'Feedback guardado: sugerencia descartada para $profileName.';
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (Supabase.instance.client.auth.currentSession == null) {
@@ -1538,15 +1499,6 @@ class _PithShellState extends State<PithShell>
         onSubmitSpark: _submitSparkForActiveProfile,
         onBack: _backFromProfile,
         onOpenContactActions: _openActiveProfileActions,
-        onGiftFeedback: (suggestion, useful) {
-          unawaited(
-            _recordGiftFeedback(
-              profileName: _activeProfileName,
-              suggestionTitle: suggestion.title,
-              useful: useful,
-            ),
-          );
-        },
         sparkFeedback: _sparkFeedback,
       ),
     ];

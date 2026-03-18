@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models/pith_models.dart';
-import '../gifts/gift_recommender.dart';
 
 class ProfileCanvasScreen extends StatelessWidget {
   const ProfileCanvasScreen({
@@ -10,7 +9,6 @@ class ProfileCanvasScreen extends StatelessWidget {
     required this.onSubmitSpark,
     required this.onBack,
     this.onOpenContactActions,
-    this.onGiftFeedback,
     this.sparkFeedback,
   });
 
@@ -18,13 +16,11 @@ class ProfileCanvasScreen extends StatelessWidget {
   final ValueChanged<String> onSubmitSpark;
   final VoidCallback onBack;
   final VoidCallback? onOpenContactActions;
-  final void Function(GiftSuggestion suggestion, bool useful)? onGiftFeedback;
   final String? sparkFeedback;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final suggestions = GiftRecommender.recommend(profile);
 
     return CustomScrollView(
       slivers: [
@@ -144,32 +140,6 @@ class ProfileCanvasScreen extends StatelessWidget {
                       _InterestBadge(interest: interest),
                   ],
                 ),
-                const SizedBox(height: 64),
-                Text(
-                  'INTELIGENCIA DE REGALOS',
-                  textAlign: TextAlign.center,
-                  style: textTheme.labelMedium?.copyWith(
-                    color: const Color(0x669AA8C0),
-                    letterSpacing: 4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Sugerencias basadas en tus notas e intereses privados',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: const Color(0x889AA8C0),
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                for (final suggestion in suggestions) ...[
-                  _GiftSuggestionTile(
-                    suggestion: suggestion,
-                    onFeedback: onGiftFeedback,
-                  ),
-                  const SizedBox(height: 10),
-                ],
                 const SizedBox(height: 72),
                 Text(
                   'NOTAS Y RECUERDOS',
@@ -398,125 +368,29 @@ class _SparkComposerState extends State<_SparkComposer> {
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      child: Column(
-        children: [
-          TextField(
-            controller: _controller,
-            onSubmitted: (_) => _submit(),
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              fillColor: Colors.transparent,
-              filled: false,
-              prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0x88F4C025)),
-              hintText: 'Agregar nota para ${widget.profileName}...',
-              hintStyle: const TextStyle(color: Color(0x449AA8C0)),
-              suffixIcon: IconButton(
-                onPressed: _submit,
-                icon: const Icon(Icons.send_rounded, color: Color(0x88F4C025)),
-                tooltip: 'Guardar nota',
-              ),
-            ),
-            style: const TextStyle(
-              color: Color(0xFFF4EBD0),
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.2,
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+      child: TextField(
+        controller: _controller,
+        onSubmitted: (_) => _submit(),
+        textInputAction: TextInputAction.done,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          fillColor: Colors.transparent,
+          filled: false,
+          prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0x88F4C025)),
+          hintText: 'Agregar nota para ${widget.profileName}...',
+          hintStyle: const TextStyle(color: Color(0x449AA8C0)),
+          suffixIcon: IconButton(
+            onPressed: _submit,
+            icon: const Icon(Icons.send_rounded, color: Color(0x88F4C025)),
+            tooltip: 'Guardar nota',
           ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonalIcon(
-              onPressed: _submit,
-              icon: const Icon(Icons.add_comment_rounded),
-              label: const Text('Agregar nota'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GiftSuggestionTile extends StatelessWidget {
-  const _GiftSuggestionTile({
-    required this.suggestion,
-    this.onFeedback,
-  });
-
-  final GiftSuggestion suggestion;
-  final void Function(GiftSuggestion suggestion, bool useful)? onFeedback;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 2),
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0x1AF4C025),
-              border: Border.all(color: const Color(0x33F4C025)),
-            ),
-            child: const Icon(Icons.card_giftcard_rounded, size: 16, color: Color(0xFFF4C025)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  suggestion.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFFF4EBD0),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  suggestion.reason,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF9AA8C0),
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Me sirve',
-                      onPressed: onFeedback == null
-                          ? null
-                          : () => onFeedback!(suggestion, true),
-                      icon: const Icon(Icons.thumb_up_alt_outlined),
-                      color: const Color(0xFFF4C025),
-                    ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'No aplica',
-                      onPressed: onFeedback == null
-                          ? null
-                          : () => onFeedback!(suggestion, false),
-                      icon: const Icon(Icons.thumb_down_alt_outlined),
-                      color: const Color(0x889AA8C0),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
+        style: const TextStyle(
+          color: Color(0xFFF4EBD0),
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }
