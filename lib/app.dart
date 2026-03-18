@@ -826,194 +826,34 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
-    final nameController = TextEditingController(
-      text: (user.userMetadata?['full_name'] as String?)?.trim() ?? '',
-    );
-    final passwordController = TextEditingController();
-    String? feedback;
-    bool isSavingName = false;
-    bool isSavingPassword = false;
-
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: const Color(0xFF101A2A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  18 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Mi cuenta',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        user.email ?? 'Usuario autenticado',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF9AA8C0),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: nameController,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre visible',
-                          hintText: 'Tu nombre en la app',
-                          prefixIcon: Icon(Icons.badge_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.tonalIcon(
-                          onPressed: isSavingName
-                              ? null
-                              : () async {
-                                  final value = nameController.text.trim();
-                                  if (value.isEmpty) {
-                                    setSheetState(() => feedback = 'Escribe un nombre valido.');
-                                    return;
-                                  }
-                                  setSheetState(() {
-                                    isSavingName = true;
-                                    feedback = null;
-                                  });
-                                  try {
-                                    await Supabase.instance.client.auth.updateUser(
-                                      UserAttributes(data: {'full_name': value}),
-                                    );
-                                    if (!context.mounted) {
-                                      return;
-                                    }
-                                    setSheetState(() {
-                                      feedback = 'Nombre actualizado.';
-                                    });
-                                  } catch (_) {
-                                    if (!context.mounted) {
-                                      return;
-                                    }
-                                    setSheetState(() {
-                                      feedback = 'No se pudo actualizar el nombre.';
-                                    });
-                                  } finally {
-                                    if (context.mounted) {
-                                      setSheetState(() => isSavingName = false);
-                                    }
-                                  }
-                                },
-                          icon: const Icon(Icons.save_rounded),
-                          label: Text(isSavingName ? 'Guardando...' : 'Guardar nombre'),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: passwordController,
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          labelText: 'Nueva clave',
-                          hintText: 'Minimo 6 caracteres',
-                          prefixIcon: Icon(Icons.lock_reset_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.tonalIcon(
-                          onPressed: isSavingPassword
-                              ? null
-                              : () async {
-                                  final value = passwordController.text;
-                                  if (value.length < 6) {
-                                    setSheetState(() => feedback = 'La clave debe tener al menos 6 caracteres.');
-                                    return;
-                                  }
-                                  setSheetState(() {
-                                    isSavingPassword = true;
-                                    feedback = null;
-                                  });
-                                  try {
-                                    await Supabase.instance.client.auth.updateUser(
-                                      UserAttributes(password: value),
-                                    );
-                                    if (!context.mounted) {
-                                      return;
-                                    }
-                                    setSheetState(() {
-                                      passwordController.clear();
-                                      feedback = 'Clave actualizada.';
-                                    });
-                                  } catch (_) {
-                                    if (!context.mounted) {
-                                      return;
-                                    }
-                                    setSheetState(() {
-                                      feedback = 'No se pudo actualizar la clave.';
-                                    });
-                                  } finally {
-                                    if (context.mounted) {
-                                      setSheetState(() => isSavingPassword = false);
-                                    }
-                                  }
-                                },
-                          icon: const Icon(Icons.password_rounded),
-                          label: Text(isSavingPassword ? 'Actualizando...' : 'Actualizar clave'),
-                        ),
-                      ),
-                      if (feedback != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          feedback!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFFF4C025),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.tonal(
-                          onPressed: () async {
-                            SupabaseSyncService.instance.clearSessionCache();
-                            await Supabase.instance.client.auth.signOut();
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
-                          },
-                          child: const Text('Cerrar sesion'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+        return _AccountSheet(
+          user: user,
+          onSaveName: (value) {
+            return Supabase.instance.client.auth.updateUser(
+              UserAttributes(data: {'full_name': value}),
             );
+          },
+          onSavePassword: (value) {
+            return Supabase.instance.client.auth.updateUser(
+              UserAttributes(password: value),
+            );
+          },
+          onSignOut: () async {
+            SupabaseSyncService.instance.clearSessionCache();
+            await Supabase.instance.client.auth.signOut();
           },
         );
       },
     );
-
-    nameController.dispose();
-    passwordController.dispose();
   }
 
   Future<void> _onAddContact() async {
@@ -1811,4 +1651,224 @@ class _CircleMapping {
 
   final int priority;
   final String colorHex;
+}
+
+class _AccountSheet extends StatefulWidget {
+  const _AccountSheet({
+    required this.user,
+    required this.onSaveName,
+    required this.onSavePassword,
+    required this.onSignOut,
+  });
+
+  final User user;
+  final Future<void> Function(String value) onSaveName;
+  final Future<void> Function(String value) onSavePassword;
+  final Future<void> Function() onSignOut;
+
+  @override
+  State<_AccountSheet> createState() => _AccountSheetState();
+}
+
+class _AccountSheetState extends State<_AccountSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _passwordController;
+  String? _feedback;
+  bool _isSavingName = false;
+  bool _isSavingPassword = false;
+  bool _isSigningOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: (widget.user.userMetadata?['full_name'] as String?)?.trim() ?? '',
+    );
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveName() async {
+    final value = _nameController.text.trim();
+    if (value.isEmpty) {
+      setState(() => _feedback = 'Escribe un nombre valido.');
+      return;
+    }
+
+    setState(() {
+      _isSavingName = true;
+      _feedback = null;
+    });
+
+    try {
+      await widget.onSaveName(value);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _feedback = 'Nombre actualizado.');
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _feedback = 'No se pudo actualizar el nombre.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingName = false);
+      }
+    }
+  }
+
+  Future<void> _savePassword() async {
+    final value = _passwordController.text;
+    if (value.length < 6) {
+      setState(() => _feedback = 'La clave debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    setState(() {
+      _isSavingPassword = true;
+      _feedback = null;
+    });
+
+    try {
+      await widget.onSavePassword(value);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _passwordController.clear();
+        _feedback = 'Clave actualizada.';
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _feedback = 'No se pudo actualizar la clave.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingPassword = false);
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    if (_isSigningOut) {
+      return;
+    }
+
+    setState(() => _isSigningOut = true);
+
+    try {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+      await widget.onSignOut();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _feedback = 'No se pudo cerrar sesion. Intenta nuevamente.';
+        _isSigningOut = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          14,
+          20,
+          18 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mi cuenta',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.user.email ?? 'Usuario autenticado',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF9AA8C0),
+                ),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: _nameController,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre visible',
+                  hintText: 'Tu nombre en la app',
+                  prefixIcon: Icon(Icons.badge_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: _isSavingName ? null : _saveName,
+                  icon: const Icon(Icons.save_rounded),
+                  label: Text(_isSavingName ? 'Guardando...' : 'Guardar nombre'),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Nueva clave',
+                  hintText: 'Minimo 6 caracteres',
+                  prefixIcon: Icon(Icons.lock_reset_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: _isSavingPassword ? null : _savePassword,
+                  icon: const Icon(Icons.password_rounded),
+                  label: Text(_isSavingPassword ? 'Actualizando...' : 'Actualizar clave'),
+                ),
+              ),
+              if (_feedback != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _feedback!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFF4C025),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  onPressed: _isSigningOut ? null : _signOut,
+                  child: Text(_isSigningOut ? 'Cerrando sesion...' : 'Cerrar sesion'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
