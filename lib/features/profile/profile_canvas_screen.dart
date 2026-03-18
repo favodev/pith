@@ -364,9 +364,9 @@ class _SparkComposerState extends State<_SparkComposer> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x1A1E293B),
+        color: const Color(0xFF121C2C),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
       child: TextField(

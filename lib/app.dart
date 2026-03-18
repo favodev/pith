@@ -78,6 +78,7 @@ class _PithShellState extends State<PithShell>
   int _pendingAsyncOps = 0;
   NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
+  Timer? _sparkFeedbackTimer;
   late Map<String, ContactProfile> _profiles;
   late Map<String, SupabaseContactRecord> _remoteContactsByName;
   late List<BirthdayContact> _birthdayContacts;
@@ -178,8 +179,32 @@ class _PithShellState extends State<PithShell>
     }
   }
 
+  void _setSparkFeedback(String message, {Duration duration = const Duration(seconds: 3)}) {
+    _sparkFeedbackTimer?.cancel();
+    _sparkFeedbackTimer = null;
+
+    if (!mounted) {
+      _sparkFeedback = message;
+      return;
+    }
+
+    setState(() {
+      _sparkFeedback = message;
+    });
+
+    _sparkFeedbackTimer = Timer(duration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sparkFeedback = null;
+      });
+    });
+  }
+
   @override
   void dispose() {
+    _sparkFeedbackTimer?.cancel();
     _fanOutController.dispose();
     super.dispose();
   }
@@ -752,9 +777,7 @@ class _PithShellState extends State<PithShell>
     unawaited(HapticsService.success());
     final targetProfile = _profiles[contact.name];
     if (targetProfile == null) {
-      setState(() {
-        _sparkFeedback = 'No se encontro el perfil del contacto. Recarga e intenta nuevamente.';
-      });
+      _setSparkFeedback('No se encontro el perfil del contacto. Recarga e intenta nuevamente.');
       return;
     }
 
@@ -880,9 +903,7 @@ class _PithShellState extends State<PithShell>
       if (!mounted) {
         return;
       }
-      setState(() {
-        _sparkFeedback = 'No se pudo guardar el contacto. Intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo guardar el contacto. Intenta nuevamente.');
       return;
     } catch (_) {
       record = null;
@@ -894,9 +915,7 @@ class _PithShellState extends State<PithShell>
 
     if (record == null) {
       unawaited(HapticsService.warning());
-      setState(() {
-        _sparkFeedback = 'No se pudo guardar el contacto. Revisa tu conexion e intenta de nuevo.';
-      });
+      _setSparkFeedback('No se pudo guardar el contacto. Revisa tu conexion e intenta de nuevo.');
       return;
     }
 
@@ -916,8 +935,9 @@ class _PithShellState extends State<PithShell>
       ];
       _activeProfileName = profile.name;
       _currentIndex = _birthdaysTabIndex;
-      _sparkFeedback = 'Contacto guardado: ${profile.name}';
     });
+
+    _setSparkFeedback('Contacto guardado: ${profile.name}');
 
     unawaited(_syncBirthdayNotifications());
   }
@@ -1119,16 +1139,14 @@ class _PithShellState extends State<PithShell>
 
     setState(() {
       _profiles[profileName] = profile.copyWith(interests: mapped);
-      _sparkFeedback = 'Intereses actualizados para $profileName.';
     });
+    _setSparkFeedback('Intereses actualizados para $profileName.');
   }
 
   Future<void> _editContact(String oldName) async {
     final existing = _remoteContactsByName[oldName];
     if (existing == null) {
-      setState(() {
-        _sparkFeedback = 'No se encontro el contacto para editar. Recarga la app e intenta de nuevo.';
-      });
+      _setSparkFeedback('No se encontro el contacto para editar. Recarga la app e intenta de nuevo.');
       return;
     }
 
@@ -1165,9 +1183,7 @@ class _PithShellState extends State<PithShell>
       if (!mounted) {
         return;
       }
-      setState(() {
-        _sparkFeedback = 'No se pudo actualizar el contacto. Intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo actualizar el contacto. Intenta nuevamente.');
       return;
     } catch (_) {
       updated = null;
@@ -1175,9 +1191,7 @@ class _PithShellState extends State<PithShell>
 
     if (!mounted || updated == null) {
       unawaited(HapticsService.warning());
-      setState(() {
-        _sparkFeedback = 'No se pudo actualizar el contacto. Verifica los datos e intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo actualizar el contacto. Verifica los datos e intenta nuevamente.');
       return;
     }
 
@@ -1201,8 +1215,9 @@ class _PithShellState extends State<PithShell>
       ];
 
       _activeProfileName = profile.name;
-      _sparkFeedback = 'Contacto actualizado: ${profile.name}';
     });
+
+    _setSparkFeedback('Contacto actualizado: ${profile.name}');
 
     unawaited(_syncBirthdayNotifications());
   }
@@ -1241,17 +1256,13 @@ class _PithShellState extends State<PithShell>
       if (!mounted) {
         return;
       }
-      setState(() {
-        _sparkFeedback = 'No se pudo eliminar el contacto. Intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo eliminar el contacto. Intenta nuevamente.');
       return;
     } catch (_) {
       if (!mounted) {
         return;
       }
-      setState(() {
-        _sparkFeedback = 'No se pudo eliminar el contacto. Intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo eliminar el contacto. Intenta nuevamente.');
       return;
     }
 
@@ -1267,8 +1278,9 @@ class _PithShellState extends State<PithShell>
       _birthdayContacts = _birthdayContacts.where((item) => item.name != name).toList();
       _activeProfileName = _profiles.isEmpty ? '' : _profiles.keys.first;
       _currentIndex = _homeTabIndex;
-      _sparkFeedback = 'Contacto eliminado: $name';
     });
+
+    _setSparkFeedback('Contacto eliminado: $name');
 
     unawaited(_syncBirthdayNotifications());
   }
@@ -1276,16 +1288,12 @@ class _PithShellState extends State<PithShell>
   Future<void> _submitSparkFromHome(String value) async {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
-      setState(() {
-        _sparkFeedback = 'Escribe una nota antes de guardar.';
-      });
+      _setSparkFeedback('Escribe una nota antes de guardar.');
       return;
     }
 
     if (_profiles.isEmpty) {
-      setState(() {
-        _sparkFeedback = 'No hay contactos aun. Crea uno desde Contactos con el boton +.';
-      });
+      _setSparkFeedback('No hay contactos aun. Crea uno desde Contactos con el boton +.');
       return;
     }
 
@@ -1303,9 +1311,7 @@ class _PithShellState extends State<PithShell>
     final parsed = QuickSparkParser.parse(input: trimmed, profile: targetProfile);
     if (parsed == null) {
       unawaited(HapticsService.warning());
-      setState(() {
-        _sparkFeedback = 'Nota no valida. Escribe una nota (ej: @Juan ...).';
-      });
+      _setSparkFeedback('Nota no valida. Escribe una nota (ej: @Juan ...).');
       return;
     }
 
@@ -1323,25 +1329,19 @@ class _PithShellState extends State<PithShell>
   }) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
-      setState(() {
-        _sparkFeedback = 'Escribe una nota antes de guardar.';
-      });
+      _setSparkFeedback('Escribe una nota antes de guardar.');
       return;
     }
 
     if (_profiles.isEmpty) {
-      setState(() {
-        _sparkFeedback = 'No hay contactos aun. Crea uno desde Contactos con el boton +.';
-      });
+      _setSparkFeedback('No hay contactos aun. Crea uno desde Contactos con el boton +.');
       return;
     }
 
     final parsed = QuickSparkParser.parse(input: trimmed, profile: targetProfile);
     if (parsed == null) {
       unawaited(HapticsService.warning());
-      setState(() {
-        _sparkFeedback = 'Nota no valida. Escribe una nota (ej: @Juan ...).';
-      });
+      _setSparkFeedback('Nota no valida. Escribe una nota (ej: @Juan ...).');
       return;
     }
 
@@ -1364,18 +1364,14 @@ class _PithShellState extends State<PithShell>
       if (!mounted) {
         return;
       }
-      setState(() {
-        _sparkFeedback = 'No se pudo guardar la nota. Intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo guardar la nota. Intenta nuevamente.');
       return;
     } catch (_) {
       unawaited(HapticsService.warning());
       if (!mounted) {
         return;
       }
-      setState(() {
-        _sparkFeedback = 'No se pudo guardar la nota. Intenta nuevamente.';
-      });
+      _setSparkFeedback('No se pudo guardar la nota. Intenta nuevamente.');
       return;
     }
 
@@ -1442,14 +1438,15 @@ class _PithShellState extends State<PithShell>
       }
       _profiles[targetProfile.name] = persistedProfile;
       _activeProfileName = targetProfile.name;
-        _sparkFeedback = addedLabels.isEmpty
-          ? 'Nota guardada para ${targetProfile.name}.'
-          : 'Nota guardada para ${targetProfile.name}. Nuevos tags: ${addedLabels.join(', ')}';
-
-      if (parsed.inferredBirthday != null) {
-        _sparkFeedback = 'Nota guardada y cumpleanos actualizado para ${targetProfile.name}.';
-      }
     });
+
+    var feedback = addedLabels.isEmpty
+        ? 'Nota guardada para ${targetProfile.name}.'
+        : 'Nota guardada para ${targetProfile.name}. Nuevos tags: ${addedLabels.join(', ')}';
+    if (parsed.inferredBirthday != null) {
+      feedback = 'Nota guardada y cumpleanos actualizado para ${targetProfile.name}.';
+    }
+    _setSparkFeedback(feedback);
 
     if (maybeBirthdayUpdated != null) {
       unawaited(_syncBirthdayNotifications());

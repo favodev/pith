@@ -402,7 +402,7 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF121C2C).withValues(alpha: 0.92),
+        color: const Color(0xFF121C2C),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),

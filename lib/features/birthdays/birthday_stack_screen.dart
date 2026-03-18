@@ -631,40 +631,11 @@ class BirthdayCard extends StatelessWidget {
                 : Colors.white.withValues(alpha: 0.05),
             width: isHighlighted ? 2 : 1,
           ),
-          color: contact.accent.withValues(alpha: isHighlighted ? 0.36 : 0.24),
-          boxShadow: isHighlighted
-              ? const [
-                  BoxShadow(
-                    color: Color(0x33F4C025),
-                    blurRadius: 26,
-                    offset: Offset(0, 10),
-                  ),
-                ]
-              : null,
+          color: contact.accent.withValues(alpha: isHighlighted ? 0.26 : 0.20),
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Positioned(
-              top: -20,
-              right: -14,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: isHighlighted ? 0.1 : 0.06),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(34),
-                  color: const Color(0x4407101C),
-                ),
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -677,9 +648,9 @@ class BirthdayCard extends StatelessWidget {
                         height: 84,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: isHighlighted ? 0.18 : 0.1),
+                          color: const Color(0x1FFFFFFF),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.18),
+                            color: Colors.white.withValues(alpha: 0.14),
                           ),
                         ),
                         alignment: Alignment.center,
