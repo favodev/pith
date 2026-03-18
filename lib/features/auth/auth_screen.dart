@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -95,6 +96,11 @@ class _AuthScreenState extends State<AuthScreen> {
         _isFeedbackError = true;
         _feedback = _friendlyAuthMessage(error.message);
       });
+    } on SocketException {
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'No hay conexión a internet disponible. Verifica tu red y vuelve a intentar.';
+      });
     } on TimeoutException {
       setState(() {
         _isFeedbackError = true;
@@ -157,6 +163,11 @@ class _AuthScreenState extends State<AuthScreen> {
         _isFeedbackError = true;
         _feedback = _friendlyAuthMessage(error.message);
       });
+    } on SocketException {
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'No hay conexión a internet disponible. Verifica tu red y vuelve a intentar.';
+      });
     } on TimeoutException {
       setState(() {
         _isFeedbackError = true;
@@ -178,6 +189,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   String _friendlyAuthMessage(String raw) {
     final lower = raw.toLowerCase();
+    if (lower.contains('failed host lookup') ||
+        lower.contains('socketexception') ||
+        lower.contains('no address associated with hostname')) {
+      return 'No hay conexión a internet disponible. Verifica tu red y vuelve a intentar.';
+    }
     if (lower.contains('invalid login credentials')) {
       return 'Correo o clave inválidos.';
     }
