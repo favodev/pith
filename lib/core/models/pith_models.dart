@@ -42,7 +42,9 @@ enum BirthdayPriority { highlighted, standard }
 enum BirthdayGroup {
   allContacts('Todos'),
   family('Familia'),
-  innerCircle('Amigos');
+  innerCircle('Amigos'),
+  work('Trabajo'),
+  acquaintances('Conocidos');
 
   const BirthdayGroup(this.label);
 

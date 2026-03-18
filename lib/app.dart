@@ -91,7 +91,7 @@ class _PithShellState extends State<PithShell>
   final List<ShellTabItem> _tabs = const [
     ShellTabItem(label: 'Inicio', icon: Icons.home_rounded),
     ShellTabItem(label: 'Pilas', icon: Icons.layers_rounded),
-    ShellTabItem(label: 'Perfil', icon: Icons.person_rounded),
+    ShellTabItem(label: 'Contacto', icon: Icons.person_rounded),
   ];
 
   @override
@@ -513,6 +513,12 @@ class _PithShellState extends State<PithShell>
     }
     if (normalized == CircleLabels.friends.toLowerCase()) {
       return BirthdayGroup.innerCircle;
+    }
+    if (normalized == CircleLabels.work.toLowerCase()) {
+      return BirthdayGroup.work;
+    }
+    if (normalized == CircleLabels.acquaintances.toLowerCase()) {
+      return BirthdayGroup.acquaintances;
     }
     return BirthdayGroup.allContacts;
   }

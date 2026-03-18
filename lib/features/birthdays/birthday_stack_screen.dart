@@ -61,8 +61,8 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
             SliverPersistentHeader(
               pinned: true,
               delegate: _BirthdayHeaderDelegate(
-                minExtent: 110,
-                maxExtent: 110,
+                minExtent: 132,
+                maxExtent: 132,
                 child: Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF09111F).withValues(alpha: 0.92),
@@ -105,9 +105,9 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                           height: 34,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             itemCount: BirthdayGroup.values.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 28),
+                            separatorBuilder: (_, _) => const SizedBox(width: 18),
                             itemBuilder: (context, index) {
                               final tab = BirthdayGroup.values[index];
                               return _BirthdayTab(
