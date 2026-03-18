@@ -94,6 +94,7 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
 
   String _selectedCircle = CircleLabels.acquaintances;
   DateTime? _birthday;
+  String? _validationError;
 
   @override
   void initState() {
@@ -116,9 +117,10 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
 
   Future<void> _pickBirthday() async {
     final now = DateTime.now();
+    final initialDay = _safeDay(now.year - 25, now.month, now.day);
     final selected = await showDatePicker(
       context: context,
-      initialDate: DateTime(now.year - 25, now.month, now.day),
+      initialDate: DateTime(now.year - 25, now.month, initialDay),
       firstDate: DateTime(1930),
       lastDate: DateTime(now.year + 1),
     );
@@ -133,7 +135,14 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
   void _submit() {
     final fullName = _nameController.text.trim();
     if (fullName.isEmpty) {
+      setState(() {
+        _validationError = 'Escribe un nombre para guardar el contacto.';
+      });
       return;
+    }
+
+    if (_validationError != null) {
+      setState(() => _validationError = null);
     }
 
     Navigator.of(context).pop(
@@ -144,6 +153,13 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
         birthday: _birthday,
       ),
     );
+  }
+
+  int _safeDay(int year, int month, int preferredDay) {
+    final nextMonth = month == 12 ? 1 : month + 1;
+    final nextMonthYear = month == 12 ? year + 1 : year;
+    final lastDay = DateTime(nextMonthYear, nextMonth, 0).day;
+    return preferredDay.clamp(1, lastDay).toInt();
   }
 
   @override
@@ -174,6 +190,11 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
             TextField(
               controller: _nameController,
               textInputAction: TextInputAction.next,
+              onChanged: (_) {
+                if (_validationError != null) {
+                  setState(() => _validationError = null);
+                }
+              },
               decoration: _inputDecoration(
                 hint: 'Nombre completo',
                 icon: Icons.person_rounded,
@@ -199,6 +220,8 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedCircle,
+                  isExpanded: true,
+                  menuMaxHeight: 320,
                   dropdownColor: const Color(0xFF132033),
                   iconEnabledColor: const Color(0xFFF4EBD0),
                   style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w700),
@@ -213,6 +236,16 @@ class _CreateContactSheetBodyState extends State<_CreateContactSheetBody> {
                 ),
               ),
             ),
+            if (_validationError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _validationError!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFFF4C025),
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               children: [

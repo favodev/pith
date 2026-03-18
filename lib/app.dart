@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/constants/circle_labels.dart';
@@ -353,11 +355,18 @@ class _PithShellState extends State<PithShell>
       ? '${contact.circleName.toUpperCase()} — CONTACTO'
         : '${contact.locationName.toUpperCase()} — ${contact.circleName.toUpperCase()}';
 
+    final persistedInterests = [
+      for (final label in contact.interestLabels)
+        ProfileInterest(label: label, icon: _interestIconForLabel(label)),
+    ];
+
     return ContactProfile(
       name: contact.fullName,
       subtitle: subtitle,
       initials: _initialsFromName(contact.fullName),
-      interests: _inferInterestsFromRemoteSparks(contact.sparks),
+      interests: persistedInterests.isEmpty
+          ? _inferInterestsFromRemoteSparks(contact.sparks)
+          : persistedInterests,
       sparks: _sparksFromRemote(contact.sparks),
     );
   }
@@ -399,10 +408,7 @@ class _PithShellState extends State<PithShell>
 
     final unique = labels.toSet().take(4).toList();
     if (unique.isEmpty) {
-      return const [
-        ProfileInterest(label: 'Momentos compartidos', icon: Icons.auto_awesome_rounded),
-        ProfileInterest(label: 'Seguimientos', icon: Icons.favorite_border_rounded),
-      ];
+      return const [];
     }
 
     return [
@@ -432,13 +438,34 @@ class _PithShellState extends State<PithShell>
     }
 
     return [
-      for (var index = 0; index < sparks.take(8).length; index++)
+      for (var index = 0; index < sparks.length; index++)
         QuickSparkEntry(
           dateLabel: _formatDate(sparks[index].createdAt),
           content: sparks[index].content,
+          iconType: sparks[index].iconType,
           highlighted: index == 0,
         ),
     ];
+  }
+
+  IconData _interestIconForLabel(String label) {
+    final normalized = label.toLowerCase();
+    if (normalized.contains('mus')) {
+      return Icons.music_note_rounded;
+    }
+    if (normalized.contains('cafe')) {
+      return Icons.coffee_rounded;
+    }
+    if (normalized.contains('regalo')) {
+      return Icons.card_giftcard_rounded;
+    }
+    if (normalized.contains('viaje') || normalized.contains('lugar')) {
+      return Icons.flight_takeoff_rounded;
+    }
+    if (normalized.contains('fecha')) {
+      return Icons.event_rounded;
+    }
+    return Icons.auto_awesome_rounded;
   }
 
   String _initialsFromName(String fullName) {
@@ -476,12 +503,45 @@ class _PithShellState extends State<PithShell>
   }
 
   bool _isBirthdayToday(DateTime? birthday) {
+    return _daysUntilBirthday(birthday) == 0;
+  }
+
+  int? _daysUntilBirthday(DateTime? birthday) {
     if (birthday == null) {
-      return false;
+      return null;
     }
 
     final now = DateTime.now();
-    return birthday.month == now.month && birthday.day == now.day;
+    DateTime next = _safeBirthdayForYear(birthday, now.year);
+    if (next.isBefore(DateTime(now.year, now.month, now.day))) {
+      next = _safeBirthdayForYear(birthday, now.year + 1);
+    }
+
+    return next.difference(DateTime(now.year, now.month, now.day)).inDays;
+  }
+
+  DateTime _safeBirthdayForYear(DateTime birthday, int year) {
+    final month = birthday.month;
+    final day = birthday.day;
+    final nextMonth = month == 12 ? 1 : month + 1;
+    final nextMonthYear = month == 12 ? year + 1 : year;
+    final lastDay = DateTime(nextMonthYear, nextMonth, 0).day;
+    return DateTime(year, month, day.clamp(1, lastDay).toInt());
+  }
+
+  List<BirthdayContact> get _upcomingBirthdayContacts {
+    final list = _birthdayContacts.where((contact) {
+      final days = _daysUntilBirthday(contact.birthday);
+      return days != null && days <= 14;
+    }).toList();
+
+    list.sort((a, b) {
+      final aDays = _daysUntilBirthday(a.birthday) ?? 999;
+      final bDays = _daysUntilBirthday(b.birthday) ?? 999;
+      return aDays.compareTo(bDays);
+    });
+
+    return list;
   }
 
   List<BirthdayContact> get _todayBirthdayContacts {
@@ -494,17 +554,30 @@ class _PithShellState extends State<PithShell>
     if (birthday == null) {
       return 'Sin cumpleanos';
     }
-    return DateLabels.monthDay(birthday);
+
+    final days = _daysUntilBirthday(birthday);
+    if (days == null) {
+      return DateLabels.monthDay(birthday);
+    }
+    if (days == 0) {
+      return 'Hoy';
+    }
+    if (days == 1) {
+      return 'Manana';
+    }
+    return 'Faltan $days dias';
   }
 
   Color _colorFromHex(String value) {
     final cleaned = value.replaceAll('#', '').trim();
     if (cleaned.length != 6) {
+      debugPrint('Color de circulo invalido (longitud): $value');
       return const Color(0xFF708DB4);
     }
 
     final parsed = int.tryParse(cleaned, radix: 16);
     if (parsed == null) {
+      debugPrint('Color de circulo invalido (parse): $value');
       return const Color(0xFF708DB4);
     }
 
@@ -516,9 +589,9 @@ class _PithShellState extends State<PithShell>
   }
 
   DeckSummary get _deckSummary {
-    final todayContacts = _todayBirthdayContacts;
-    final total = todayContacts.length;
-    final avatars = todayContacts
+    final upcomingContacts = _upcomingBirthdayContacts;
+    final total = upcomingContacts.length;
+    final avatars = upcomingContacts
         .take(3)
         .map((contact) => contact.initials)
         .toList();
@@ -529,17 +602,17 @@ class _PithShellState extends State<PithShell>
 
     return DeckSummary(
       totalBirthdays: total,
-      title: '$total Cumpleanos\nde hoy',
+      title: '$total Cumpleanos\nproximos 14 dias',
       subtitle: total == 0
           ? 'Tu red esta vacia. Agrega tu primer contacto.'
-          : 'Un momento importante en tu red. Envia una nota.',
+          : 'Activa recordatorios y prepara un detalle a tiempo.',
       avatars: avatars,
     );
   }
 
   List<PulseItem> get _pulseItems {
     final items = <PulseItem>[];
-    for (final contact in _birthdayContacts.take(3)) {
+    for (final contact in _upcomingBirthdayContacts.take(3)) {
       items.add(
         PulseItem(
           name: contact.name,
@@ -558,12 +631,25 @@ class _PithShellState extends State<PithShell>
       return _emptyProfile;
     }
 
-    final match = RegExp(r'^@([^:]+?)\s*:').firstMatch(value.trim());
-    if (match == null) {
+    final lowered = value.toLowerCase();
+    final sorted = _profiles.values.toList()
+      ..sort((a, b) => b.name.length.compareTo(a.name.length));
+
+    for (final entry in sorted) {
+      final name = entry.name.toLowerCase();
+      final firstName = name.split(' ').first;
+      final initials = entry.initials.toLowerCase();
+      if (lowered.contains('@$name') || lowered.contains('@$firstName') || lowered.contains('@$initials')) {
+        return entry;
+      }
+    }
+
+    final match = RegExp(r'@([^\s:]+)').firstMatch(value.trim());
+    final mention = match?.group(1)?.trim().toLowerCase() ?? '';
+    if (mention.isEmpty) {
       return _activeProfile;
     }
 
-    final mention = match.group(1)?.trim().toLowerCase() ?? '';
     for (final entry in _profiles.values) {
       final name = entry.name.toLowerCase();
       final initials = entry.initials.toLowerCase();
@@ -693,6 +779,41 @@ class _PithShellState extends State<PithShell>
                   ),
                 ),
                 const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () async {
+                      final payload = {
+                        'generated_at': DateTime.now().toIso8601String(),
+                        'contacts': [
+                          for (final profile in _profiles.values)
+                            {
+                              'name': profile.name,
+                              'subtitle': profile.subtitle,
+                              'initials': profile.initials,
+                              'interests': [for (final interest in profile.interests) interest.label],
+                              'sparks': [
+                                for (final spark in profile.sparks)
+                                  {
+                                    'date': spark.dateLabel,
+                                    'content': spark.content,
+                                  },
+                              ],
+                            },
+                        ],
+                      };
+                      await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(payload)));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Backup copiado al portapapeles en formato JSON.')),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.file_download_rounded),
+                    label: const Text('Exportar backup (JSON)'),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.tonal(
@@ -830,6 +951,18 @@ class _PithShellState extends State<PithShell>
                   child: FilledButton.tonalIcon(
                     onPressed: () async {
                       Navigator.of(context).pop();
+                      await _editInterests(profileName);
+                    },
+                    icon: const Icon(Icons.interests_rounded),
+                    label: const Text('Editar intereses'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
                       await _editContact(profileName);
                     },
                     icon: const Icon(Icons.edit_rounded),
@@ -854,6 +987,119 @@ class _PithShellState extends State<PithShell>
         );
       },
     );
+  }
+
+  Future<void> _editInterests(String profileName) async {
+    final profile = _profiles[profileName];
+    if (profile == null || !mounted) {
+      return;
+    }
+
+    final labels = profile.interests.map((entry) => entry.label).toList(growable: true);
+    final inputController = TextEditingController();
+
+    final updated = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF101A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  14,
+                  20,
+                  16 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Intereses de $profileName',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final label in labels)
+                          InputChip(
+                            label: Text(label),
+                            onDeleted: () {
+                              setSheetState(() => labels.remove(label));
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: inputController,
+                      decoration: const InputDecoration(
+                        hintText: 'Agregar interes manual',
+                        prefixIcon: Icon(Icons.add_circle_outline_rounded),
+                      ),
+                      onSubmitted: (value) {
+                        final clean = value.trim();
+                        if (clean.isEmpty || labels.contains(clean)) {
+                          return;
+                        }
+                        setSheetState(() {
+                          labels.add(clean);
+                          inputController.clear();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(context).pop(labels),
+                        child: const Text('Guardar intereses'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    inputController.dispose();
+
+    if (!mounted || updated == null) {
+      return;
+    }
+
+    final mapped = [
+      for (final label in updated)
+        ProfileInterest(label: label, icon: _interestIconForLabel(label)),
+    ];
+
+    final remote = _remoteContactsByName[profileName];
+    if (remote != null) {
+      unawaited(
+        SupabaseSyncService.instance.saveContactInterests(
+          contactId: remote.id,
+          interestLabels: updated,
+        ),
+      );
+    }
+
+    setState(() {
+      _profiles[profileName] = profile.copyWith(interests: mapped);
+      _sparkFeedback = 'Intereses actualizados para $profileName.';
+    });
   }
 
   Future<void> _editContact(String oldName) async {
@@ -1025,7 +1271,7 @@ class _PithShellState extends State<PithShell>
     if (parsed == null) {
       unawaited(HapticsService.warning());
       setState(() {
-        _sparkFeedback = 'Nota no valida. Escribe una nota o usa @Nombre: para dirigirla a otro contacto.';
+        _sparkFeedback = 'Nota no valida. Escribe una nota (ej: @Juan ...).';
       });
       return;
     }
@@ -1072,17 +1318,77 @@ class _PithShellState extends State<PithShell>
 
     final latestProfile = _profiles[targetProfile.name] ?? targetProfile;
     final updatedInterests = [...latestProfile.interests, ...parsed.inferredInterests];
+    final dedupedInterests = <ProfileInterest>[];
+    final seenInterests = <String>{};
+    for (final interest in updatedInterests) {
+      final key = interest.label.trim().toLowerCase();
+      if (seenInterests.add(key)) {
+        dedupedInterests.add(interest);
+      }
+    }
+
     final addedLabels = parsed.inferredInterests.map((entry) => entry.label).toList();
 
-    setState(() {
-      _profiles[targetProfile.name] = latestProfile.copyWith(
-        interests: updatedInterests.take(6).toList(),
-        sparks: [parsed.spark, ...latestProfile.sparks],
+    final persistedProfile = latestProfile.copyWith(
+      interests: dedupedInterests.take(10).toList(),
+      sparks: [parsed.spark, ...latestProfile.sparks],
+    );
+
+    final remote = _remoteContactsByName[targetProfile.name];
+    if (remote != null) {
+      unawaited(
+        SupabaseSyncService.instance.saveContactInterests(
+          contactId: remote.id,
+          interestLabels: [for (final interest in persistedProfile.interests) interest.label],
+        ),
       );
+    }
+
+    setState(() {
+      _profiles[targetProfile.name] = persistedProfile;
       _activeProfileName = targetProfile.name;
         _sparkFeedback = addedLabels.isEmpty
           ? 'Nota guardada en ${targetProfile.name} • Sincronizacion Supabase OK'
           : 'Nota guardada en ${targetProfile.name} • Nuevos tags: ${addedLabels.join(', ')} • Sincronizacion Supabase OK';
+    });
+  }
+
+  Future<void> _recordGiftFeedback({
+    required String profileName,
+    required String suggestionTitle,
+    required bool useful,
+  }) async {
+    final remote = _remoteContactsByName[profileName];
+    if (remote == null) {
+      return;
+    }
+
+    try {
+      await _runBusy(
+        () => SupabaseSyncService.instance.saveGiftFeedback(
+          contactId: remote.id,
+          suggestionTitle: suggestionTitle,
+          useful: useful,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _sparkFeedback = 'No se pudo guardar feedback de regalo.';
+      });
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _sparkFeedback = useful
+          ? 'Feedback guardado: sugerencia util para $profileName.'
+          : 'Feedback guardado: sugerencia descartada para $profileName.';
     });
   }
 
@@ -1117,6 +1423,15 @@ class _PithShellState extends State<PithShell>
         onSubmitSpark: _submitSpark,
         onBack: _backFromProfile,
         onOpenContactActions: _openActiveProfileActions,
+        onGiftFeedback: (suggestion, useful) {
+          unawaited(
+            _recordGiftFeedback(
+              profileName: _activeProfileName,
+              suggestionTitle: suggestion.title,
+              useful: useful,
+            ),
+          );
+        },
         sparkFeedback: _sparkFeedback,
       ),
     ];
@@ -1161,7 +1476,7 @@ class _PithShellState extends State<PithShell>
             ),
           if (_isBusy)
             Positioned(
-              top: 0,
+              top: MediaQuery.of(context).padding.top,
               left: 0,
               right: 0,
               child: LinearProgressIndicator(
@@ -1175,7 +1490,12 @@ class _PithShellState extends State<PithShell>
         bottomNavigationBar: _noteReceipt != null
           ? null
           : Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                0,
+                20,
+                12 + MediaQuery.of(context).padding.bottom,
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(30),
                 child: BackdropFilter(

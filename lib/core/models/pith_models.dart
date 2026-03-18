@@ -89,11 +89,13 @@ class QuickSparkEntry {
   const QuickSparkEntry({
     required this.dateLabel,
     required this.content,
+    this.iconType,
     this.highlighted = false,
   });
 
   final String dateLabel;
   final String content;
+  final String? iconType;
   final bool highlighted;
 }
 

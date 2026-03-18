@@ -24,19 +24,26 @@ class QuickSparkParser {
       return null;
     }
 
-    final mentionMatch = RegExp(r'^@([^:]+?)\s*:').firstMatch(trimmed);
-    if (mentionMatch != null) {
-      final mention = mentionMatch.group(1)?.trim().toLowerCase() ?? '';
-      if (mention.isEmpty) {
-        return null;
+    final mentionTokens = <String>{
+      '@${profile.name.toLowerCase()}',
+      '@${profile.initials.toLowerCase()}',
+      '@${profile.name.toLowerCase().split(' ').first}',
+    };
+    final mentionsInText = RegExp(r'@[A-Za-zÀ-ÿ0-9._-]+').allMatches(trimmed.toLowerCase());
+    for (final match in mentionsInText) {
+      final mention = match.group(0);
+      if (mention == null) {
+        continue;
       }
-      final allowed = [profile.name.toLowerCase(), profile.initials.toLowerCase()];
-      if (!allowed.any((entry) => entry.contains(mention) || mention.contains(entry))) {
+      if (!mentionTokens.contains(mention)) {
         return null;
       }
     }
 
-    final rawContent = trimmed.replaceFirst(RegExp(r'^@[^:]+?\s*:\s*'), '').trim();
+    final rawContent = trimmed
+        .replaceAll(RegExp(r'@[A-Za-zÀ-ÿ0-9._-]+\s*:?' ), '')
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim();
     final content = rawContent.isEmpty ? trimmed : rawContent;
 
     return QuickSparkParseResult(
@@ -96,6 +103,12 @@ class QuickSparkParser {
     }
     if (RegExp(r'chocolate').hasMatch(normalized)) {
       addInterest(const ProfileInterest(label: 'Chocolate oscuro', icon: Icons.cake_rounded));
+    }
+    if (RegExp(r'\b(hoy|manana|lunes|martes|miercoles|jueves|viernes|sabado|domingo|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|\d{1,2}/\d{1,2})\b').hasMatch(normalized)) {
+      addInterest(const ProfileInterest(label: 'Planes con fecha', icon: Icons.event_rounded));
+    }
+    if (RegExp(r'\b(en|en el|en la)\s+[a-zà-ÿ]{3,}\b').hasMatch(normalized)) {
+      addInterest(const ProfileInterest(label: 'Lugares clave', icon: Icons.place_rounded));
     }
 
     return inferred;

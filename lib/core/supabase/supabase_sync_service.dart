@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../constants/circle_labels.dart';
 import '../models/pith_models.dart';
 import 'supabase_bootstrap.dart';
 import '../utils/date_labels.dart';
@@ -11,10 +12,12 @@ class SupabaseSparkRecord {
   const SupabaseSparkRecord({
     required this.content,
     required this.createdAt,
+    this.iconType,
   });
 
   final String content;
   final DateTime createdAt;
+  final String? iconType;
 }
 
 class SupabaseContactRecord {
@@ -26,6 +29,7 @@ class SupabaseContactRecord {
     required this.circleName,
     required this.circlePriority,
     required this.circleColorHex,
+    required this.interestLabels,
     required this.sparks,
   });
 
@@ -36,6 +40,7 @@ class SupabaseContactRecord {
   final String circleName;
   final int circlePriority;
   final String circleColorHex;
+  final List<String> interestLabels;
   final List<SupabaseSparkRecord> sparks;
 }
 
@@ -158,12 +163,40 @@ class SupabaseSyncService {
     }
 
     final sparksByContact = <String, List<SupabaseSparkRecord>>{};
+    final interestsByContact = <String, List<String>>{};
     if (contactIds.isNotEmpty) {
+      final interestRows = await _withRetry<List<Map<String, dynamic>>>(
+        () async {
+          final rows = await _client
+              .from('contact_interests')
+              .select('contact_id,label')
+              .inFilter('contact_id', contactIds);
+
+          return List<Map<String, dynamic>>.from(rows);
+        },
+        errorContext: 'cargar intereses de contactos',
+      );
+
+      if (interestRows != null) {
+        for (final row in interestRows) {
+          final contactId = row['contact_id'] as String?;
+          final label = (row['label'] as String?)?.trim();
+          if (contactId == null || label == null || label.isEmpty) {
+            continue;
+          }
+
+          final list = interestsByContact.putIfAbsent(contactId, () => <String>[]);
+          if (!list.contains(label)) {
+            list.add(label);
+          }
+        }
+      }
+
       final sparkRows = await _withRetry<List<Map<String, dynamic>>>(
         () async {
           final rows = await _client
               .from('sparks')
-              .select('contact_id,content,created_at')
+              .select('contact_id,content,created_at,icon_type')
               .inFilter('contact_id', contactIds)
               .order('created_at', ascending: false);
 
@@ -179,6 +212,7 @@ class SupabaseSyncService {
           final contactId = row['contact_id'] as String?;
           final content = row['content'] as String?;
           final createdAtRaw = row['created_at'] as String?;
+          final iconType = row['icon_type'] as String?;
           if (contactId == null || content == null) {
             continue;
           }
@@ -188,7 +222,7 @@ class SupabaseSyncService {
               : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
 
           final list = sparksByContact.putIfAbsent(contactId, () => <SupabaseSparkRecord>[]);
-          list.add(SupabaseSparkRecord(content: content, createdAt: createdAt));
+          list.add(SupabaseSparkRecord(content: content, createdAt: createdAt, iconType: iconType));
         }
       }
     }
@@ -204,7 +238,7 @@ class SupabaseSyncService {
       final locationName = (row['location_name'] as String?)?.trim() ?? '';
 
       final birthdayRaw = row['birthday'] as String?;
-      final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
+      final birthday = _safeParseBirthday(birthdayRaw);
 
       final circle = _extractCircleRow(row['circle']);
       final circleName = (circle?['name'] as String?)?.trim() ?? 'Conocidos';
@@ -220,6 +254,7 @@ class SupabaseSyncService {
           circleName: circleName,
           circlePriority: circlePriority,
           circleColorHex: circleColorHex,
+          interestLabels: interestsByContact[id] ?? const [],
           sparks: sparksByContact[id] ?? const [],
         ),
       );
@@ -240,9 +275,10 @@ class SupabaseSyncService {
       return null;
     }
 
+    final normalizedCircle = CircleLabels.normalize(payload.circleName);
     final circleId = await _ensureCircleId(
       userId: userId,
-      name: payload.circleName,
+      name: normalizedCircle,
       priorityLevel: payload.circlePriority,
       colorHex: payload.circleColorHex,
     );
@@ -285,11 +321,11 @@ class SupabaseSyncService {
       return null;
     }
 
-    _rememberCircleId(userId: userId, circleName: payload.circleName, circleId: circleId);
+    _rememberCircleId(userId: userId, circleName: normalizedCircle, circleId: circleId);
     _rememberContactId(userId: userId, fullName: fullName, contactId: id);
 
     final birthdayRaw = row['birthday'] as String?;
-    final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
+    final birthday = _safeParseBirthday(birthdayRaw);
     final locationName = (row['location_name'] as String?)?.trim() ?? '';
     final circle = _extractCircleRow(row['circle']);
 
@@ -301,6 +337,7 @@ class SupabaseSyncService {
       circleName: (circle?['name'] as String?)?.trim() ?? payload.circleName,
       circlePriority: (circle?['priority_level'] as int?) ?? payload.circlePriority,
       circleColorHex: (circle?['color_hex'] as String?)?.trim() ?? payload.circleColorHex,
+      interestLabels: const [],
       sparks: const [],
     );
   }
@@ -318,9 +355,10 @@ class SupabaseSyncService {
       return null;
     }
 
+    final normalizedCircle = CircleLabels.normalize(payload.circleName);
     final circleId = await _ensureCircleId(
       userId: userId,
-      name: payload.circleName,
+      name: normalizedCircle,
       priorityLevel: payload.circlePriority,
       colorHex: payload.circleColorHex,
     );
@@ -364,11 +402,11 @@ class SupabaseSyncService {
       return null;
     }
 
-    _rememberCircleId(userId: userId, circleName: payload.circleName, circleId: circleId);
+    _rememberCircleId(userId: userId, circleName: normalizedCircle, circleId: circleId);
     _rememberContactId(userId: userId, fullName: fullName, contactId: id);
 
     final birthdayRaw = row['birthday'] as String?;
-    final birthday = birthdayRaw == null ? null : DateTime.tryParse(birthdayRaw);
+    final birthday = _safeParseBirthday(birthdayRaw);
     final locationName = (row['location_name'] as String?)?.trim() ?? '';
     final circle = _extractCircleRow(row['circle']);
 
@@ -380,6 +418,7 @@ class SupabaseSyncService {
       circleName: (circle?['name'] as String?)?.trim() ?? payload.circleName,
       circlePriority: (circle?['priority_level'] as int?) ?? payload.circlePriority,
       circleColorHex: (circle?['color_hex'] as String?)?.trim() ?? payload.circleColorHex,
+      interestLabels: const [],
       sparks: const [],
     );
   }
@@ -407,6 +446,76 @@ class SupabaseSyncService {
 
     final userCache = _contactIdsByUserAndName[userId];
     userCache?.remove(fullName.trim().toLowerCase());
+  }
+
+  Future<void> saveContactInterests({
+    required String contactId,
+    required List<String> interestLabels,
+  }) async {
+    if (!isEnabled) {
+      return;
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return;
+    }
+
+    final normalized = interestLabels
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+
+    await _withRetry<void>(
+      () async {
+        await _client.from('contact_interests').delete().eq('contact_id', contactId);
+      },
+      errorContext: 'limpiar intereses de contacto',
+    );
+
+    if (normalized.isEmpty) {
+      return;
+    }
+
+    await _withRetry<void>(
+      () async {
+        await _client.from('contact_interests').insert([
+          for (final label in normalized)
+            {
+              'contact_id': contactId,
+              'label': label,
+            },
+        ]);
+      },
+      errorContext: 'guardar intereses de contacto',
+    );
+  }
+
+  Future<void> saveGiftFeedback({
+    required String contactId,
+    required String suggestionTitle,
+    required bool useful,
+  }) async {
+    if (!isEnabled) {
+      return;
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return;
+    }
+
+    await _withRetry<void>(
+      () async {
+        await _client.from('gift_feedback').insert({
+          'contact_id': contactId,
+          'suggestion_title': suggestionTitle,
+          'was_useful': useful,
+        });
+      },
+      errorContext: 'guardar feedback de regalo',
+    );
   }
 
   Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
@@ -486,9 +595,6 @@ class SupabaseSyncService {
           : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
 
       final list = result.putIfAbsent(name, () => <QuickSparkEntry>[]);
-      if (list.length >= 8) {
-        continue;
-      }
 
       list.add(
         QuickSparkEntry(
@@ -685,7 +791,7 @@ class SupabaseSyncService {
       return null;
     }
 
-    return userCache[circleName.trim().toLowerCase()];
+    return userCache[CircleLabels.normalize(circleName).trim().toLowerCase()];
   }
 
   void _rememberCircleId({
@@ -693,7 +799,7 @@ class SupabaseSyncService {
     required String circleName,
     required String circleId,
   }) {
-    final normalized = circleName.trim().toLowerCase();
+    final normalized = CircleLabels.normalize(circleName).trim().toLowerCase();
     if (normalized.isEmpty) {
       return;
     }
@@ -737,6 +843,20 @@ class SupabaseSyncService {
     }
 
     return text;
+  }
+
+  DateTime? _safeParseBirthday(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed != null) {
+      return parsed;
+    }
+
+    debugPrint('No se pudo parsear birthday: $raw');
+    return null;
   }
 
   String _inferLocation(String subtitle) {

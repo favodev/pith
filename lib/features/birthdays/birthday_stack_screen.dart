@@ -286,42 +286,56 @@ class BirthdayFanOutOverlay extends StatelessWidget {
               ),
               Align(
                 alignment: const Alignment(0, 0.05),
-                child: SizedBox(
-                  width: 360,
-                  height: 380,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      for (var index = 0; index < contacts.length; index++)
-                        Transform.translate(
-                          offset: cardOffsets[index] * curve,
-                          child: Transform.rotate(
-                            angle: rotations[index] * curve,
-                            child: Transform.scale(
-                              scale: 0.7 + (0.3 * curve),
-                              child: Opacity(
-                                opacity: curve.clamp(0.0, 1.0),
-                                child: _FanOutMiniCard(
-                                  contact: contacts[index],
-                                  highlight: index < 2,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = (constraints.maxWidth * 0.92).clamp(260.0, 360.0);
+                    final height = (constraints.maxHeight * 0.54).clamp(260.0, 380.0);
+
+                    final scaleX = width / 360;
+                    final scaleY = height / 380;
+                    final responsiveOffsets = [
+                      for (final base in cardOffsets)
+                        Offset(base.dx * scaleX, base.dy * scaleY),
+                    ];
+
+                    return SizedBox(
+                      width: width,
+                      height: height,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          for (var index = 0; index < contacts.length; index++)
+                            Transform.translate(
+                              offset: responsiveOffsets[index] * curve,
+                              child: Transform.rotate(
+                                angle: rotations[index] * curve,
+                                child: Transform.scale(
+                                  scale: 0.7 + (0.3 * curve),
+                                  child: Opacity(
+                                    opacity: curve.clamp(0.0, 1.0),
+                                    child: _FanOutMiniCard(
+                                      contact: contacts[index],
+                                      highlight: index < 2,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
+                          Transform.scale(
+                            scale: 1 - (0.08 * curve),
+                            child: Opacity(
+                              opacity: (1.2 - controller.value * 1.35).clamp(0.0, 1.0),
+                              child: _DeckFanCoreCard(
+                                totalBirthdays: totalBirthdays,
+                                contactInitials: contacts.take(3).map((entry) => entry.initials).toList(),
+                              ),
+                            ),
                           ),
-                        ),
-                      Transform.scale(
-                        scale: 1 - (0.08 * curve),
-                        child: Opacity(
-                          opacity: (1.2 - controller.value * 1.35).clamp(0.0, 1.0),
-                          child: _DeckFanCoreCard(
-                            totalBirthdays: totalBirthdays,
-                            contactInitials: contacts.take(3).map((entry) => entry.initials).toList(),
-                          ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -415,7 +429,7 @@ class _DeckFanCoreCard extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFF4EBD0), width: 1.6),
                   ),
                   child: const Text(
-                    'NA',
+                    '--',
                     style: TextStyle(
                       color: Color(0xFFF4EBD0),
                       fontWeight: FontWeight.w700,
@@ -590,9 +604,11 @@ class BirthdayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isHighlighted = contact.priority == BirthdayPriority.highlighted;
+    final normalizedHeightFactor = contact.heightFactor.clamp(0.75, 1.15);
+    final aspectRatio = (0.82 / normalizedHeightFactor).clamp(0.72, 0.95);
 
     return AspectRatio(
-      aspectRatio: 0.82 / contact.heightFactor,
+      aspectRatio: aspectRatio,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(34),

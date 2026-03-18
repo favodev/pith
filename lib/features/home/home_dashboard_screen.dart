@@ -82,7 +82,10 @@ class HomeDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
                 const SizedBox(height: 4),
-                _QuickSparkInput(onSubmitted: onSubmitSpark),
+                _QuickSparkInput(
+                  onSubmitted: onSubmitSpark,
+                  hasContacts: hasContacts,
+                ),
                 if (sparkFeedback != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -342,6 +345,8 @@ class _PulseCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${item.meta} • ${item.detail}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: const Color(0xFF91A0BA),
                     height: 1.35,
@@ -357,9 +362,13 @@ class _PulseCard extends StatelessWidget {
 }
 
 class _QuickSparkInput extends StatefulWidget {
-  const _QuickSparkInput({required this.onSubmitted});
+  const _QuickSparkInput({
+    required this.onSubmitted,
+    required this.hasContacts,
+  });
 
   final ValueChanged<String> onSubmitted;
+  final bool hasContacts;
 
   @override
   State<_QuickSparkInput> createState() => _QuickSparkInputState();
@@ -405,7 +414,9 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
         style: const TextStyle(color: Color(0xFFF4EBD0), fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFFF4C025)),
-          hintText: 'Escribe una nota para un contacto',
+          hintText: widget.hasContacts
+              ? 'Escribe una nota para un contacto'
+              : 'Primero crea un contacto desde Pilas',
           suffixIcon: IconButton(
             onPressed: _submit,
             icon: const Icon(Icons.send_rounded, color: Color(0xFF8392AD)),

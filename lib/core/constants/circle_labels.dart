@@ -19,7 +19,7 @@ class CircleLabels {
     if (value == 'trabajo' || value == 'work') {
       return work;
     }
-    if (value == 'conocidos' || value == 'todos' || value == 'all contacts' || value == 'vip') {
+    if (value == 'conocidos' || value == 'todos' || value == 'all contacts') {
       return acquaintances;
     }
     return acquaintances;

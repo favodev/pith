@@ -10,6 +10,7 @@ class ProfileCanvasScreen extends StatelessWidget {
     required this.onSubmitSpark,
     required this.onBack,
     this.onOpenContactActions,
+    this.onGiftFeedback,
     this.sparkFeedback,
   });
 
@@ -17,6 +18,7 @@ class ProfileCanvasScreen extends StatelessWidget {
   final ValueChanged<String> onSubmitSpark;
   final VoidCallback onBack;
   final VoidCallback? onOpenContactActions;
+  final void Function(GiftSuggestion suggestion, bool useful)? onGiftFeedback;
   final String? sparkFeedback;
 
   @override
@@ -71,30 +73,37 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 36),
                 Center(
-                  child: Container(
-                    width: 142,
-                    height: 142,
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF1C2738),
-                        border: Border.all(color: const Color(0x33F4EBD0)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        profile.initials,
-                        style: textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFF4EBD0),
-                          letterSpacing: -1.2,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final viewportWidth = MediaQuery.of(context).size.width;
+                      final avatarSize = (viewportWidth * 0.34).clamp(108.0, 142.0);
+
+                      return Container(
+                        width: avatarSize,
+                        height: avatarSize,
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                         ),
-                      ),
-                    ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF1C2738),
+                            border: Border.all(color: const Color(0x33F4EBD0)),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            profile.initials,
+                            style: textTheme.displaySmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFF4EBD0),
+                              letterSpacing: -1.2,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -155,7 +164,10 @@ class ProfileCanvasScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 for (final suggestion in suggestions) ...[
-                  _GiftSuggestionTile(suggestion: suggestion),
+                  _GiftSuggestionTile(
+                    suggestion: suggestion,
+                    onFeedback: onGiftFeedback,
+                  ),
                   const SizedBox(height: 10),
                 ],
                 const SizedBox(height: 72),
@@ -213,8 +225,8 @@ class _InterestBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 116,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 88, maxWidth: 156),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -232,6 +244,8 @@ class _InterestBadge extends StatelessWidget {
           Text(
             interest.label,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: const Color(0xB3E8DFC5),
               letterSpacing: 1.2,
@@ -296,13 +310,33 @@ class _SparkTimelineEntry extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  entry.content,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    height: 1.45,
-                    color: const Color(0xE6F4EBD0),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (entry.iconType != null) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          _iconForType(entry.iconType!),
+                          size: 18,
+                          color: const Color(0x88F4C025),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: Text(
+                        entry.content,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w300,
+                          height: 1.45,
+                          color: const Color(0xE6F4EBD0),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -310,6 +344,15 @@ class _SparkTimelineEntry extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  IconData _iconForType(String iconType) {
+    return switch (iconType.toLowerCase()) {
+      'coffee' => Icons.coffee_rounded,
+      'music' => Icons.music_note_rounded,
+      'gift' => Icons.card_giftcard_rounded,
+      _ => Icons.notes_rounded,
+    };
   }
 }
 
@@ -396,9 +439,13 @@ class _SparkComposerState extends State<_SparkComposer> {
 }
 
 class _GiftSuggestionTile extends StatelessWidget {
-  const _GiftSuggestionTile({required this.suggestion});
+  const _GiftSuggestionTile({
+    required this.suggestion,
+    this.onFeedback,
+  });
 
   final GiftSuggestion suggestion;
+  final void Function(GiftSuggestion suggestion, bool useful)? onFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -442,6 +489,29 @@ class _GiftSuggestionTile extends StatelessWidget {
                     color: const Color(0xFF9AA8C0),
                     height: 1.35,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Me sirve',
+                      onPressed: onFeedback == null
+                          ? null
+                          : () => onFeedback!(suggestion, true),
+                      icon: const Icon(Icons.thumb_up_alt_outlined),
+                      color: const Color(0xFFF4C025),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'No aplica',
+                      onPressed: onFeedback == null
+                          ? null
+                          : () => onFeedback!(suggestion, false),
+                      icon: const Icon(Icons.thumb_down_alt_outlined),
+                      color: const Color(0x889AA8C0),
+                    ),
+                  ],
                 ),
               ],
             ),
