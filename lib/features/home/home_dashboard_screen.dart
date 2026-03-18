@@ -416,7 +416,7 @@ class _QuickSparkInputState extends State<_QuickSparkInput> {
           prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFFF4C025)),
           hintText: widget.hasContacts
               ? 'Escribe una nota para un contacto'
-              : 'Primero crea un contacto desde Pilas',
+              : 'Primero crea un contacto desde Contactos',
           suffixIcon: IconButton(
             onPressed: _submit,
             icon: const Icon(Icons.send_rounded, color: Color(0xFF8392AD)),
@@ -453,7 +453,7 @@ class _EmptyHomeState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Agrega tu primer contacto desde Pilas y Pith empezara a construir tu memoria privada.',
+            'Agrega tu primer contacto desde Contactos y Pith empezara a construir tu memoria privada.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFF9AA8C0),
                   height: 1.35,
