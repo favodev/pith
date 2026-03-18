@@ -38,7 +38,7 @@ Future<CreateContactInput?> showEditContactSheet(
   return showContactFormSheet(
     context,
     title: 'Editar contacto',
-    subtitle: 'Actualiza este contacto y sincronizalo con tu cuenta.',
+    subtitle: 'Actualiza este contacto y sincronízalo con tu cuenta.',
     submitLabel: 'Guardar cambios',
     initial: initial,
   );
@@ -47,7 +47,7 @@ Future<CreateContactInput?> showEditContactSheet(
 Future<CreateContactInput?> showContactFormSheet(
   BuildContext context, {
   String title = 'Nuevo contacto',
-  String subtitle = 'Guarda un contacto y sincronizalo con tu cuenta.',
+  String subtitle = 'Guarda un contacto y sincronízalo con tu cuenta.',
   String submitLabel = 'Guardar contacto',
   ContactFormInitialData? initial,
 }) {

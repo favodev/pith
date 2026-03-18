@@ -134,7 +134,7 @@ class BirthdayNotificationService {
   }
 
   int _notificationIdForContact(String contactId) {
-    final raw = contactId.hashCode.abs();
+    final raw = contactId.hashCode & 0x7fffffff;
     return raw % 2000000000;
   }
 }

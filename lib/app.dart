@@ -432,10 +432,20 @@ class _PithShellState extends State<PithShell>
     final labels = <String>[];
     for (final spark in sparks) {
       final content = spark.content.toLowerCase();
-      if (content.contains('rap') || content.contains('music') || content.contains('vinyl')) {
+      if (content.contains('rap') ||
+          content.contains('music') ||
+          content.contains('musica') ||
+          content.contains('música') ||
+          content.contains('vinyl') ||
+          content.contains('vinilo') ||
+          content.contains('cancion') ||
+          content.contains('canción')) {
         labels.add('Gustos musicales');
       }
-      if (content.contains('coffee') || content.contains('cafe') || content.contains('espresso')) {
+      if (content.contains('coffee') ||
+          content.contains('cafe') ||
+          content.contains('café') ||
+          content.contains('espresso')) {
         labels.add('Rituales de cafe');
       }
       if (content.contains('gift') || content.contains('regalo')) {
@@ -609,9 +619,9 @@ class _PithShellState extends State<PithShell>
       return 'Hoy';
     }
     if (days == 1) {
-      return 'Manana';
+      return 'Mañana';
     }
-    return 'Faltan $days dias';
+    return 'Faltan $days días';
   }
 
   Color _colorFromHex(String value) {
@@ -912,6 +922,14 @@ class _PithShellState extends State<PithShell>
       return;
     }
 
+    final normalizedNew = input.fullName.trim().toLowerCase();
+    final alreadyExists = _profiles.keys
+        .any((name) => name.trim().toLowerCase() == normalizedNew);
+    if (alreadyExists) {
+      _setSparkFeedback('Ese contacto ya existe. Edita el contacto actual si necesitas cambiarlo.');
+      return;
+    }
+
     final mapping = _circleMapping(input.circleName);
     SupabaseContactRecord? record;
     try {
@@ -942,7 +960,7 @@ class _PithShellState extends State<PithShell>
 
     if (record == null) {
       unawaited(HapticsService.warning());
-      _setSparkFeedback('No se pudo guardar el contacto. Revisa tu conexion e intenta de nuevo.');
+      _setSparkFeedback('No se pudo guardar el contacto. Revisa tu conexión e intenta de nuevo.');
       return;
     }
 
@@ -1113,7 +1131,7 @@ class _PithShellState extends State<PithShell>
 
       _birthdayContacts = [
         birthday,
-        ..._birthdayContacts.where((item) => item.name != oldName && item.name != updatedRecord.fullName),
+        ..._birthdayContacts.where((item) => item.name != updatedRecord.fullName),
       ];
 
       _activeProfileName = profile.name;

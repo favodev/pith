@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/circle_labels.dart';
 import '../models/pith_models.dart';
 import 'supabase_bootstrap.dart';
-import '../utils/date_labels.dart';
 
 class SupabaseSparkRecord {
   const SupabaseSparkRecord({
@@ -479,96 +478,6 @@ class SupabaseSyncService {
     );
   }
 
-  Future<Map<String, List<QuickSparkEntry>>> loadSparksForContacts(
-    Set<String> contactNames,
-  ) async {
-    if (!isEnabled || contactNames.isEmpty) {
-      return const {};
-    }
-
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      return const {};
-    }
-
-    final contacts = await _withRetry<List<Map<String, dynamic>>>(
-      () async {
-        final rows = await _client
-            .from('contacts')
-            .select('id,full_name')
-            .eq('user_id', userId)
-            .inFilter('full_name', contactNames.toList());
-        return List<Map<String, dynamic>>.from(rows);
-      },
-      errorContext: 'resolver ids de contactos para notas',
-    );
-
-    if (contacts == null || contacts.isEmpty) {
-      return const {};
-    }
-
-    final idToName = <String, String>{};
-    for (final row in contacts) {
-      final id = row['id'] as String?;
-      final fullName = row['full_name'] as String?;
-      if (id != null && fullName != null) {
-        idToName[id] = fullName;
-      }
-    }
-
-    if (idToName.isEmpty) {
-      return const {};
-    }
-
-    final sparkRows = await _withRetry<List<Map<String, dynamic>>>(
-      () async {
-        final rows = await _client
-            .from('sparks')
-            .select('contact_id,content,created_at')
-            .inFilter('contact_id', idToName.keys.toList())
-            .order('created_at', ascending: false);
-        return List<Map<String, dynamic>>.from(rows);
-      },
-      errorContext: 'cargar notas por contacto',
-    );
-
-    if (sparkRows == null) {
-      return const {};
-    }
-
-    final result = <String, List<QuickSparkEntry>>{};
-    for (final row in sparkRows) {
-      final contactId = row['contact_id'] as String?;
-      final content = row['content'] as String?;
-      final createdAtRaw = row['created_at'] as String?;
-
-      if (contactId == null || content == null) {
-        continue;
-      }
-
-      final name = idToName[contactId];
-      if (name == null) {
-        continue;
-      }
-
-      final createdAt = createdAtRaw == null
-          ? DateTime.now()
-          : DateTime.tryParse(createdAtRaw) ?? DateTime.now();
-
-      final list = result.putIfAbsent(name, () => <QuickSparkEntry>[]);
-
-      list.add(
-        QuickSparkEntry(
-          dateLabel: DateLabels.monthDayYear(createdAt),
-          content: content,
-          highlighted: list.isEmpty,
-        ),
-      );
-    }
-
-    return result;
-  }
-
   Future<String?> _ensureDefaultCircleId(String userId) async {
     if (_defaultCircleId != null && _defaultCircleUserId == userId) {
       return _defaultCircleId;
@@ -836,10 +745,15 @@ class SupabaseSyncService {
 
   String _inferIconType(String content) {
     final lowered = content.toLowerCase();
-    if (lowered.contains('coffee') || lowered.contains('cafe')) {
+    if (lowered.contains('coffee') || lowered.contains('cafe') || lowered.contains('café')) {
       return 'coffee';
     }
-    if (lowered.contains('rap') || lowered.contains('vinyl') || lowered.contains('music')) {
+    if (lowered.contains('rap') ||
+        lowered.contains('vinyl') ||
+        lowered.contains('vinilo') ||
+        lowered.contains('music') ||
+        lowered.contains('musica') ||
+        lowered.contains('música')) {
       return 'music';
     }
     if (lowered.contains('gift') || lowered.contains('regalo')) {
@@ -877,9 +791,9 @@ class SupabaseSyncService {
         if (e.statusCode?.toString() == '401') {
           rethrow;
         }
-      } on TimeoutException {
+      } on TimeoutException catch (e) {
         stopwatch.stop();
-        lastError = TimeoutException('Tiempo de espera agotado');
+        lastError = e;
         if (kDebugMode && errorContext != null) {
           debugPrint('[SupabaseSync] TIMEOUT $errorContext intento $attempt en ${stopwatch.elapsedMilliseconds}ms');
         }

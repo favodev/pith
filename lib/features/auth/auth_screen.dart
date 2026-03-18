@@ -53,6 +53,14 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'Ingresa un correo válido.';
+      });
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _isFeedbackError = false;
@@ -78,7 +86,7 @@ class _AuthScreenState extends State<AuthScreen> {
         if (response.session == null) {
           setState(() {
             _isFeedbackError = false;
-            _feedback = 'Cuenta creada. Revisa tu correo para confirmar e iniciar sesion.';
+            _feedback = 'Cuenta creada. Revisa tu correo para confirmar e iniciar sesión.';
           });
         }
       }
@@ -90,12 +98,12 @@ class _AuthScreenState extends State<AuthScreen> {
     } on TimeoutException {
       setState(() {
         _isFeedbackError = true;
-        _feedback = 'Tiempo de espera agotado. Verifica tu conexion a internet.';
+        _feedback = 'Tiempo de espera agotado. Verifica tu conexión a internet.';
       });
     } catch (_) {
       setState(() {
         _isFeedbackError = true;
-        _feedback = 'No se pudo completar la operacion. Intenta nuevamente.';
+        _feedback = 'No se pudo completar la operación. Intenta nuevamente.';
       });
     } finally {
       if (mounted) {
@@ -122,6 +130,14 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _isFeedbackError = true;
+        _feedback = 'Ingresa un correo válido.';
+      });
+      return;
+    }
+
     setState(() {
       _isResettingPassword = true;
       _isFeedbackError = false;
@@ -144,12 +160,12 @@ class _AuthScreenState extends State<AuthScreen> {
     } on TimeoutException {
       setState(() {
         _isFeedbackError = true;
-        _feedback = 'Tiempo de espera agotado. Verifica tu conexion a internet.';
+        _feedback = 'Tiempo de espera agotado. Verifica tu conexión a internet.';
       });
     } catch (_) {
       setState(() {
         _isFeedbackError = true;
-        _feedback = 'No se pudo enviar el correo de recuperacion. Intenta nuevamente.';
+        _feedback = 'No se pudo enviar el correo de recuperación. Intenta nuevamente.';
       });
     } finally {
       if (mounted) {
@@ -163,18 +179,22 @@ class _AuthScreenState extends State<AuthScreen> {
   String _friendlyAuthMessage(String raw) {
     final lower = raw.toLowerCase();
     if (lower.contains('invalid login credentials')) {
-      return 'Correo o clave invalidos.';
+      return 'Correo o clave inválidos.';
     }
     if (lower.contains('email not confirmed')) {
-      return 'Debes confirmar tu email antes de iniciar sesion.';
+      return 'Debes confirmar tu email antes de iniciar sesión.';
     }
     if (lower.contains('user already registered')) {
-      return 'Ese email ya esta registrado. Inicia sesion o recupera tu clave.';
+      return 'Ese email ya está registrado. Inicia sesión o recupera tu clave.';
     }
     if (lower.contains('password should be at least')) {
       return 'La clave debe tener al menos 6 caracteres.';
     }
     return raw;
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
   }
 
   @override

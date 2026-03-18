@@ -31,21 +31,23 @@ class QuickSparkParser {
       '@${profile.initials.toLowerCase()}',
       '@${profile.name.toLowerCase().split(' ').first}',
     };
-    final mentionsInText = RegExp(r'@[A-Za-zÀ-ÿ0-9._-]+').allMatches(trimmed.toLowerCase());
-    for (final match in mentionsInText) {
-      final mention = match.group(0);
-      if (mention == null) {
-        continue;
-      }
-      if (!mentionTokens.contains(mention)) {
-        return null;
-      }
+    final lowered = trimmed.toLowerCase();
+    if (lowered.contains('@') && !mentionTokens.any(lowered.contains)) {
+      return null;
     }
 
-    final rawContent = trimmed
-        .replaceAll(RegExp(r'@[A-Za-zÀ-ÿ0-9._-]+\s*:?' ), '')
-        .replaceAll(RegExp(r'\s{2,}'), ' ')
-        .trim();
+    final sortedMentions = mentionTokens.toList()
+      ..sort((a, b) => b.length.compareTo(a.length));
+
+    var rawContent = trimmed;
+    for (final mention in sortedMentions) {
+      rawContent = rawContent.replaceAll(
+        RegExp('${RegExp.escape(mention)}\\s*:?', caseSensitive: false),
+        '',
+      );
+    }
+
+    rawContent = rawContent.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
     final content = rawContent.isEmpty ? trimmed : rawContent;
 
     return QuickSparkParseResult(
