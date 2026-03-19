@@ -101,22 +101,6 @@ class QuickSparkEntry {
   final bool highlighted;
 }
 
-class NoteDeliveryReceipt {
-  const NoteDeliveryReceipt({
-    required this.recipientName,
-    required this.recipientLabel,
-    required this.initials,
-    required this.statusLabel,
-    required this.accent,
-  });
-
-  final String recipientName;
-  final String recipientLabel;
-  final String initials;
-  final String statusLabel;
-  final Color accent;
-}
-
 class ContactProfile {
   const ContactProfile({
     required this.name,

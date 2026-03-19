@@ -20,7 +20,6 @@ import 'features/contacts/create_contact_sheet.dart';
 import 'features/home/home_dashboard_screen.dart';
 import 'features/profile/profile_canvas_screen.dart';
 import 'features/sparks/quick_spark_parser.dart';
-import 'features/success/note_success_screen.dart';
 import 'features/shared/common_widgets.dart';
 import 'core/supabase/supabase_sync_service.dart';
 
@@ -78,7 +77,6 @@ class _PithShellState extends State<PithShell>
   int _currentIndex = 0;
   bool _isFanOutVisible = false;
   int _pendingAsyncOps = 0;
-  NoteDeliveryReceipt? _noteReceipt;
   String? _sparkFeedback;
   Timer? _sparkFeedbackTimer;
   int _pendingSparkSyncCount = 0;
@@ -438,7 +436,9 @@ class _PithShellState extends State<PithShell>
       subtitle: _displayCircleName(input.circleName),
       initials: _initialsFromName(input.fullName),
       interests: oldProfile?.interests ?? const [],
-      sparks: oldProfile?.sparks ?? const [],
+      sparks: oldProfile == null || oldProfile.sparks.isEmpty
+          ? [_defaultBirthdaySpark(input.birthday)]
+          : oldProfile.sparks,
     );
 
     final birthdayContact = BirthdayContact(
@@ -734,7 +734,7 @@ class _PithShellState extends State<PithShell>
       interests: persistedInterests.isEmpty
           ? _inferInterestsFromRemoteSparks(contact.sparks)
           : persistedInterests,
-      sparks: _sparksFromRemote(contact.sparks),
+      sparks: _sparksFromRemote(contact.sparks, birthday: contact.birthday),
     );
   }
 
@@ -806,14 +806,25 @@ class _PithShellState extends State<PithShell>
     ];
   }
 
-  List<QuickSparkEntry> _sparksFromRemote(List<SupabaseSparkRecord> sparks) {
+  QuickSparkEntry _defaultBirthdaySpark(DateTime? birthday) {
+    final content = birthday == null
+        ? 'Cumpleaños pendiente por registrar.'
+        : 'Cumpleaños registrado: ${DateLabels.monthDayYear(birthday)}.';
+
+    return QuickSparkEntry(
+      dateLabel: 'CUMPLEAÑOS',
+      content: content,
+      highlighted: true,
+    );
+  }
+
+  List<QuickSparkEntry> _sparksFromRemote(
+    List<SupabaseSparkRecord> sparks, {
+    required DateTime? birthday,
+  }) {
     if (sparks.isEmpty) {
-      return const [
-        QuickSparkEntry(
-          dateLabel: 'HOY',
-          content: 'Listo para capturar tu primera nota.',
-          highlighted: true,
-        ),
+      return [
+        _defaultBirthdaySpark(birthday),
       ];
     }
 
@@ -1138,58 +1149,6 @@ class _PithShellState extends State<PithShell>
         );
       },
     );
-  }
-
-  void _sendBirthdayNote(BirthdayContact contact) {
-    unawaited(HapticsService.success());
-    final targetProfile = _profiles[contact.name];
-    if (targetProfile == null) {
-      _setSparkFeedback('No se encontro el perfil del contacto. Recarga e intenta nuevamente.');
-      return;
-    }
-
-    setState(() {
-      _noteReceipt = NoteDeliveryReceipt(
-        recipientName: contact.name,
-        recipientLabel: 'CONTACTO',
-        initials: contact.initials,
-        statusLabel: 'Guardado',
-        accent: const Color(0xFFF4C025),
-      );
-    });
-
-    final birthdaySpark = QuickSparkParseResult(
-      spark: QuickSparkEntry(
-        dateLabel: _formatDate(DateTime.now()),
-        content: 'Nota de cumpleaños guardada.',
-        highlighted: true,
-      ),
-      inferredInterests: const [],
-    );
-    unawaited(_saveSparkToSupabase(targetProfile: targetProfile, parsed: birthdaySpark));
-  }
-
-  void _closeNoteSuccess() {
-    setState(() => _noteReceipt = null);
-  }
-
-  void _returnToDashboard() {
-    setState(() {
-      _noteReceipt = null;
-      _currentIndex = 0;
-    });
-  }
-
-  void _viewNoteDetails() {
-    final receipt = _noteReceipt;
-    setState(() {
-      if (receipt != null) {
-        _activeProfileName = receipt.recipientName;
-      }
-      _profileReturnIndex = _birthdaysTabIndex;
-      _noteReceipt = null;
-      _currentIndex = _profileTabIndex;
-    });
   }
 
   void _backFromProfile() {
@@ -1739,7 +1698,6 @@ class _PithShellState extends State<PithShell>
         todayCount: _todayBirthdayContacts.length,
         onBack: () => setState(() => _currentIndex = 0),
         onOpenSearch: _openSearch,
-        onSendNote: _sendBirthdayNote,
         onOpenContact: (contact) {
           if (!_profiles.containsKey(contact.name)) {
             return;
@@ -1761,7 +1719,17 @@ class _PithShellState extends State<PithShell>
       ),
     ];
 
-    return Scaffold(
+    return PopScope(
+      canPop: _currentIndex != _profileTabIndex,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
+        if (_currentIndex == _profileTabIndex) {
+          _backFromProfile();
+        }
+      },
+      child: Scaffold(
       body: Stack(
         children: [
           ColoredBox(
@@ -1788,15 +1756,6 @@ class _PithShellState extends State<PithShell>
                       .toList(),
                   totalBirthdays: _todayBirthdayContacts.length,
                 ),
-              ),
-            ),
-          if (_noteReceipt != null)
-            Positioned.fill(
-              child: NoteSuccessScreen(
-                receipt: _noteReceipt!,
-                onClose: _closeNoteSuccess,
-                onReturnToDashboard: _returnToDashboard,
-                onViewDetails: _viewNoteDetails,
               ),
             ),
           if (_isBusy)
@@ -1847,7 +1806,7 @@ class _PithShellState extends State<PithShell>
             ),
         ],
       ),
-        bottomNavigationBar: (_noteReceipt != null || _currentIndex == _profileTabIndex)
+        bottomNavigationBar: (_currentIndex == _profileTabIndex)
           ? null
           : Padding(
               padding: EdgeInsets.fromLTRB(
@@ -1887,6 +1846,7 @@ class _PithShellState extends State<PithShell>
                 ),
               ),
             ),
+      ),
     );
   }
 }

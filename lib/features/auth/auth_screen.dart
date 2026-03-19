@@ -24,13 +24,36 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isResettingPassword = false;
   bool _isFeedbackError = false;
   String? _feedback;
+  Timer? _feedbackTimer;
 
   @override
   void dispose() {
+    _feedbackTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  void _showSuccessFeedback(String message) {
+    _feedbackTimer?.cancel();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isFeedbackError = false;
+      _feedback = message;
+    });
+
+    _feedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _feedback = null;
+      });
+    });
   }
 
   Future<void> _submit() async {
@@ -85,10 +108,7 @@ class _AuthScreenState extends State<AuthScreen> {
             .timeout(_requestTimeout);
 
         if (response.session == null) {
-          setState(() {
-            _isFeedbackError = false;
-            _feedback = 'Cuenta creada. Revisa tu correo para confirmar e iniciar sesión.';
-          });
+          _showSuccessFeedback('Cuenta creada.');
         }
       }
     } on AuthException catch (error) {
@@ -198,7 +218,7 @@ class _AuthScreenState extends State<AuthScreen> {
       return 'Correo o clave inválidos.';
     }
     if (lower.contains('email not confirmed')) {
-      return 'Debes confirmar tu email antes de iniciar sesión.';
+      return 'Tu cuenta ya fue creada. Inicia sesión para continuar.';
     }
     if (lower.contains('user already registered')) {
       return 'Ese email ya está registrado. Inicia sesión o recupera tu clave.';

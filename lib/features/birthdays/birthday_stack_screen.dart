@@ -10,7 +10,6 @@ class BirthdayStackScreen extends StatefulWidget {
     required this.todayCount,
     required this.onBack,
     required this.onOpenSearch,
-    required this.onSendNote,
     required this.onOpenContact,
     required this.onAddContact,
   });
@@ -19,7 +18,6 @@ class BirthdayStackScreen extends StatefulWidget {
   final int todayCount;
   final VoidCallback onBack;
   final VoidCallback onOpenSearch;
-  final ValueChanged<BirthdayContact> onSendNote;
   final ValueChanged<BirthdayContact> onOpenContact;
   final VoidCallback onAddContact;
 
@@ -174,9 +172,6 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                                 BirthdayCard(
                                   contact: contact,
                                   onOpenContact: () => widget.onOpenContact(contact),
-                                  onSendNote: contact.actionIcon == null
-                                      ? null
-                                      : () => widget.onSendNote(contact),
                                 ),
                                 const SizedBox(height: 16),
                               ],
@@ -191,9 +186,6 @@ class _BirthdayStackScreenState extends State<BirthdayStackScreen> {
                                 BirthdayCard(
                                   contact: contact,
                                   onOpenContact: () => widget.onOpenContact(contact),
-                                  onSendNote: contact.actionIcon == null
-                                      ? null
-                                      : () => widget.onSendNote(contact),
                                 ),
                                 const SizedBox(height: 16),
                               ],
@@ -575,12 +567,10 @@ class BirthdayCard extends StatelessWidget {
   const BirthdayCard({
     super.key,
     required this.contact,
-    this.onSendNote,
     this.onOpenContact,
   });
 
   final BirthdayContact contact;
-  final VoidCallback? onSendNote;
   final VoidCallback? onOpenContact;
 
   @override
@@ -668,22 +658,6 @@ class BirthdayCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (contact.actionIcon != null)
-                        GestureDetector(
-                          onTap: onSendNote,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: const Color(0x1AF4C025),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              contact.actionIcon,
-                              color: const Color(0xFFF4C025),
-                              size: 22,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ],
