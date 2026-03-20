@@ -397,9 +397,14 @@ class _PithShellState extends State<PithShell>
       }
     }
 
+    final birthday = _birthdayForContactName(targetProfile.name);
+
     final persistedProfile = latestProfile.copyWith(
       interests: dedupedInterests.take(10).toList(),
-      sparks: [parsed.spark, ...latestProfile.sparks],
+      sparks: _withBirthdaySparkAtTop(
+        [parsed.spark, ...latestProfile.sparks],
+        birthday: birthday,
+      ),
     );
 
     if (mounted) {
@@ -847,17 +852,29 @@ class _PithShellState extends State<PithShell>
     );
   }
 
+  bool _isBirthdaySpark(QuickSparkEntry spark) {
+    return spark.dateLabel.trim().toUpperCase() == 'CUMPLEAÑOS';
+  }
+
+  List<QuickSparkEntry> _withBirthdaySparkAtTop(
+    List<QuickSparkEntry> sparks, {
+    required DateTime? birthday,
+  }) {
+    final withoutBirthday = [
+      for (final spark in sparks)
+        if (!_isBirthdaySpark(spark)) spark,
+    ];
+    return [
+      _defaultBirthdaySpark(birthday),
+      ...withoutBirthday,
+    ];
+  }
+
   List<QuickSparkEntry> _sparksFromRemote(
     List<SupabaseSparkRecord> sparks, {
     required DateTime? birthday,
   }) {
-    if (sparks.isEmpty) {
-      return [
-        _defaultBirthdaySpark(birthday),
-      ];
-    }
-
-    return [
+    return _withBirthdaySparkAtTop([
       for (var index = 0; index < sparks.length; index++)
         QuickSparkEntry(
           dateLabel: _formatDate(sparks[index].createdAt),
@@ -865,7 +882,7 @@ class _PithShellState extends State<PithShell>
           iconType: sparks[index].iconType,
           highlighted: index == 0,
         ),
-    ];
+    ], birthday: birthday);
   }
 
   IconData _interestIconForLabel(String label) {
@@ -1013,10 +1030,10 @@ class _PithShellState extends State<PithShell>
   Color _circleAccentColor(String circleName, {required String fallbackHex}) {
     final normalized = CircleLabels.normalize(circleName);
     return switch (normalized) {
-      CircleLabels.family => const Color(0xFFC77A48),
-      CircleLabels.friends => const Color(0xFF4F74C4),
-      CircleLabels.work => const Color(0xFF5A8A7A),
-      CircleLabels.acquaintances => const Color(0xFF7A669A),
+      CircleLabels.family => const Color(0xFFF29A4A),
+      CircleLabels.friends => const Color(0xFF64B88A),
+      CircleLabels.work => const Color(0xFF5C8DDE),
+      CircleLabels.acquaintances => const Color(0xFF9A7AD6),
       _ => _colorFromHex(fallbackHex),
     };
   }
@@ -1285,10 +1302,10 @@ class _PithShellState extends State<PithShell>
 
   _CircleMapping _circleMapping(String circle) {
     return switch (CircleLabels.normalize(circle)) {
-      CircleLabels.family => const _CircleMapping(priority: 1, colorHex: '#C77A48'),
-      CircleLabels.friends => const _CircleMapping(priority: 2, colorHex: '#4F74C4'),
-      CircleLabels.work => const _CircleMapping(priority: 3, colorHex: '#5A8A7A'),
-      CircleLabels.acquaintances => const _CircleMapping(priority: 4, colorHex: '#7A669A'),
+      CircleLabels.family => const _CircleMapping(priority: 1, colorHex: '#F29A4A'),
+      CircleLabels.friends => const _CircleMapping(priority: 2, colorHex: '#64B88A'),
+      CircleLabels.work => const _CircleMapping(priority: 3, colorHex: '#5C8DDE'),
+      CircleLabels.acquaintances => const _CircleMapping(priority: 4, colorHex: '#9A7AD6'),
       _ => const _CircleMapping(priority: 3, colorHex: '#708DB4'),
     };
   }
@@ -1442,7 +1459,14 @@ class _PithShellState extends State<PithShell>
 
     final updatedRecord = updated;
 
-    final profile = _profileFromRemoteContact(updatedRecord);
+    final previousProfile = _profiles[oldName] ?? _profiles[updatedRecord.fullName];
+    final profile = _profileFromRemoteContact(updatedRecord).copyWith(
+      interests: previousProfile?.interests ?? const [],
+      sparks: _withBirthdaySparkAtTop(
+        previousProfile?.sparks ?? const [],
+        birthday: updatedRecord.birthday,
+      ),
+    );
     final birthday = _birthdayFromRemoteContact(updatedRecord);
 
     setState(() {
@@ -1642,9 +1666,14 @@ class _PithShellState extends State<PithShell>
 
     final addedLabels = parsed.inferredInterests.map((entry) => entry.label).toList();
 
+    final birthday = parsed.inferredBirthday ?? _birthdayForContactName(targetProfile.name);
+
     final persistedProfile = latestProfile.copyWith(
       interests: dedupedInterests.take(10).toList(),
-      sparks: [parsed.spark, ...latestProfile.sparks],
+      sparks: _withBirthdaySparkAtTop(
+        [parsed.spark, ...latestProfile.sparks],
+        birthday: birthday,
+      ),
     );
 
     final remote = _remoteContactsByName[targetProfile.name];

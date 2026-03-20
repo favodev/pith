@@ -26,6 +26,66 @@ class _ProfileCanvasScreenState extends State<ProfileCanvasScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
+  Future<void> _openComposerSheet() async {
+    final controller = TextEditingController();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF101A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            14,
+            16,
+            12 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    final value = controller.text.trim();
+                    if (value.isEmpty) {
+                      return;
+                    }
+                    widget.onSubmitSpark(value);
+                    Navigator.of(context).pop();
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Agregar nota para ${widget.profile.name}...',
+                    prefixIcon: const Icon(Icons.edit_note_rounded),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              FilledButton(
+                onPressed: () {
+                  final value = controller.text.trim();
+                  if (value.isEmpty) {
+                    return;
+                  }
+                  widget.onSubmitSpark(value);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    controller.dispose();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -212,23 +272,30 @@ class _ProfileCanvasScreenState extends State<ProfileCanvasScreen> {
           left: 20,
           right: 20,
           bottom: 16 + MediaQuery.of(context).padding.bottom,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              if (widget.sparkFeedback != null) ...[
-                Text(
-                  widget.sparkFeedback!,
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFF4C025),
-                    fontWeight: FontWeight.w700,
+              if (widget.sparkFeedback != null)
+                Expanded(
+                  child: Text(
+                    widget.sparkFeedback!,
+                    textAlign: TextAlign.left,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFFF4C025),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-              ],
-              _SparkComposer(
-                profileName: widget.profile.name,
-                onSubmitted: widget.onSubmitSpark,
+                )
+              else
+                const Spacer(),
+              const SizedBox(width: 10),
+              FloatingActionButton.extended(
+                onPressed: _openComposerSheet,
+                backgroundColor: const Color(0xFFF4C025),
+                foregroundColor: const Color(0xFF17130A),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Agregar nota'),
               ),
             ],
           ),
@@ -337,72 +404,3 @@ class _SparkTimelineEntry extends StatelessWidget {
   }
 }
 
-class _SparkComposer extends StatefulWidget {
-  const _SparkComposer({required this.profileName, required this.onSubmitted});
-
-  final String profileName;
-  final ValueChanged<String> onSubmitted;
-
-  @override
-  State<_SparkComposer> createState() => _SparkComposerState();
-}
-
-class _SparkComposerState extends State<_SparkComposer> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final value = _controller.text.trim();
-    if (value.isEmpty) {
-      return;
-    }
-    widget.onSubmitted(value);
-    _controller.clear();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF121C2C),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-      child: TextField(
-        controller: _controller,
-        onSubmitted: (_) => _submit(),
-        textInputAction: TextInputAction.done,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          fillColor: Colors.transparent,
-          filled: false,
-          prefixIcon: const Icon(Icons.edit_note_rounded, color: Color(0x88F4C025)),
-          hintText: 'Agregar nota para ${widget.profileName}...',
-          hintStyle: const TextStyle(color: Color(0x449AA8C0)),
-          suffixIcon: IconButton(
-            onPressed: _submit,
-            icon: const Icon(Icons.send_rounded, color: Color(0x88F4C025)),
-            tooltip: 'Guardar nota',
-          ),
-        ),
-        style: const TextStyle(
-          color: Color(0xFFF4EBD0),
-          fontWeight: FontWeight.w400,
-          letterSpacing: 0.2,
-        ),
-      ),
-    );
-  }
-}

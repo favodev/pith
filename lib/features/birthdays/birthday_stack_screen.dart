@@ -421,6 +421,9 @@ class _FanOutMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accentStrong = contact.accent.withValues(alpha: highlight ? 0.62 : 0.34);
+    final accentGlow = contact.accent.withValues(alpha: 0.26);
+
     return Container(
       width: 116,
       height: 154,
@@ -428,16 +431,14 @@ class _FanOutMiniCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: highlight
-              ? const Color(0x88F4C025)
-              : Colors.white.withValues(alpha: 0.06),
+          color: accentStrong,
           width: highlight ? 1.6 : 1,
         ),
         color: contact.accent.withValues(alpha: highlight ? 0.42 : 0.28),
         boxShadow: highlight
-            ? const [
+            ? [
                 BoxShadow(
-                  color: Color(0x33F4C025),
+                  color: accentGlow,
                   blurRadius: 20,
                   offset: Offset(0, 10),
                 ),
@@ -471,7 +472,7 @@ class _FanOutMiniCard extends StatelessWidget {
           Text(
             contact.relation.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFFF4C025),
+              color: accentStrong,
               letterSpacing: 1,
               fontWeight: FontWeight.w800,
             ),
@@ -578,6 +579,8 @@ class BirthdayCard extends StatelessWidget {
     final isHighlighted = contact.priority == BirthdayPriority.highlighted;
     final normalizedHeightFactor = contact.heightFactor.clamp(0.75, 1.15);
     final aspectRatio = (0.82 / normalizedHeightFactor).clamp(0.72, 0.95);
+    final accentBorder = contact.accent.withValues(alpha: isHighlighted ? 0.62 : 0.32);
+    final accentLabel = contact.accent.withValues(alpha: 0.92);
 
     return GestureDetector(
       onTap: onOpenContact,
@@ -588,9 +591,7 @@ class BirthdayCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(34),
           border: Border.all(
-            color: isHighlighted
-                ? const Color(0x80F4C025)
-                : Colors.white.withValues(alpha: 0.05),
+            color: accentBorder,
             width: isHighlighted ? 2 : 1,
           ),
           color: contact.accent.withValues(alpha: isHighlighted ? 0.26 : 0.20),
@@ -630,7 +631,7 @@ class BirthdayCard extends StatelessWidget {
                   Text(
                     contact.relation.toUpperCase(),
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: const Color(0xFFF4C025),
+                      color: accentLabel,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,
                     ),
