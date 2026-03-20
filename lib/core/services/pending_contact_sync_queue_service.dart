@@ -8,6 +8,7 @@ class PendingContactSyncItem {
   const PendingContactSyncItem._({
     required this.operation,
     required this.fullName,
+    this.contactId,
     this.circleName,
     this.circlePriority,
     this.circleColorHex,
@@ -19,10 +20,12 @@ class PendingContactSyncItem {
     required String circleName,
     required int circlePriority,
     required String circleColorHex,
+    String? contactId,
     String? birthdayIso,
   }) : this._(
          operation: PendingContactOperation.upsert,
          fullName: fullName,
+         contactId: contactId,
          circleName: circleName,
          circlePriority: circlePriority,
          circleColorHex: circleColorHex,
@@ -31,13 +34,16 @@ class PendingContactSyncItem {
 
   const PendingContactSyncItem.delete({
     required String fullName,
+    String? contactId,
   }) : this._(
          operation: PendingContactOperation.delete,
          fullName: fullName,
+         contactId: contactId,
        );
 
   final PendingContactOperation operation;
   final String fullName;
+  final String? contactId;
   final String? circleName;
   final int? circlePriority;
   final String? circleColorHex;
@@ -47,6 +53,7 @@ class PendingContactSyncItem {
     return {
       'operation': operation.name,
       'fullName': fullName,
+      'contactId': contactId,
       'circleName': circleName,
       'circlePriority': circlePriority,
       'circleColorHex': circleColorHex,
@@ -57,12 +64,16 @@ class PendingContactSyncItem {
   static PendingContactSyncItem? fromJson(Map<String, dynamic> json) {
     final operationRaw = (json['operation'] as String?)?.trim().toLowerCase();
     final fullName = (json['fullName'] as String?)?.trim();
+    final contactId = (json['contactId'] as String?)?.trim();
     if (operationRaw == null || fullName == null || fullName.isEmpty) {
       return null;
     }
 
     if (operationRaw == PendingContactOperation.delete.name) {
-      return PendingContactSyncItem.delete(fullName: fullName);
+      return PendingContactSyncItem.delete(
+        fullName: fullName,
+        contactId: contactId == null || contactId.isEmpty ? null : contactId,
+      );
     }
 
     if (operationRaw != PendingContactOperation.upsert.name) {
@@ -84,6 +95,7 @@ class PendingContactSyncItem {
 
     return PendingContactSyncItem.upsert(
       fullName: fullName,
+      contactId: contactId == null || contactId.isEmpty ? null : contactId,
       circleName: circleName,
       circlePriority: circlePriority,
       circleColorHex: circleColorHex,
@@ -135,15 +147,29 @@ class PendingContactSyncQueueService {
 
   Future<void> enqueue(PendingContactSyncItem item) async {
     final items = await readAll();
-    final target = _normalizedName(item.fullName);
+    final target = _queueKey(fullName: item.fullName, contactId: item.contactId);
     final compacted = <PendingContactSyncItem>[];
     for (final existing in items) {
-      if (_normalizedName(existing.fullName) != target) {
+      if (_queueKey(fullName: existing.fullName, contactId: existing.contactId) != target) {
         compacted.add(existing);
       }
     }
     compacted.add(item);
     await _writeAll(compacted);
+  }
+
+  Future<void> removeForContact({
+    required String fullName,
+    String? contactId,
+  }) async {
+    final items = await readAll();
+    final target = _queueKey(fullName: fullName, contactId: contactId);
+    final filtered = items.where((item) {
+      final itemKey = _queueKey(fullName: item.fullName, contactId: item.contactId);
+      return itemKey != target;
+    }).toList();
+
+    await _writeAll(filtered);
   }
 
   Future<void> replaceAll(List<PendingContactSyncItem> items) async {
@@ -160,5 +186,13 @@ class PendingContactSyncQueueService {
 
   String _normalizedName(String value) {
     return value.trim().toLowerCase();
+  }
+
+  String _queueKey({required String fullName, String? contactId}) {
+    final normalizedId = contactId?.trim();
+    if (normalizedId != null && normalizedId.isNotEmpty) {
+      return 'id:$normalizedId';
+    }
+    return 'name:${_normalizedName(fullName)}';
   }
 }

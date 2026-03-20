@@ -298,7 +298,11 @@ class _PithShellState extends State<PithShell>
                 throw StateError('No se pudo sincronizar contacto pendiente.');
               }
             case PendingContactOperation.delete:
-              await SupabaseSyncService.instance.deleteContactByName(item.fullName);
+              if (item.contactId != null && item.contactId!.trim().isNotEmpty) {
+                await SupabaseSyncService.instance.deleteContactById(item.contactId!);
+              } else {
+                await SupabaseSyncService.instance.deleteContactByName(item.fullName);
+              }
           }
           synced++;
         } catch (_) {
@@ -442,6 +446,8 @@ class _PithShellState extends State<PithShell>
   Future<void> _saveContactOffline({
     required CreateContactInput input,
     String? oldName,
+    String? oldContactId,
+    String? contactId,
   }) async {
     final mapping = _circleMapping(input.circleName);
     final oldProfile = oldName == null ? null : _profiles[oldName];
@@ -492,13 +498,17 @@ class _PithShellState extends State<PithShell>
 
     if (oldName != null && oldName.trim().toLowerCase() != input.fullName.trim().toLowerCase()) {
       await PendingContactSyncQueueService.instance.enqueue(
-        PendingContactSyncItem.delete(fullName: oldName),
+        PendingContactSyncItem.delete(
+          fullName: oldName,
+          contactId: oldContactId,
+        ),
       );
     }
 
     await PendingContactSyncQueueService.instance.enqueue(
       PendingContactSyncItem.upsert(
         fullName: input.fullName,
+        contactId: contactId,
         circleName: input.circleName,
         circlePriority: mapping.priority,
         circleColorHex: mapping.colorHex,
@@ -514,7 +524,7 @@ class _PithShellState extends State<PithShell>
     unawaited(_syncBirthdayNotifications());
   }
 
-  Future<void> _deleteContactOffline(String name) async {
+  Future<void> _deleteContactOffline(String name, {String? contactId}) async {
     if (mounted) {
       setState(() {
         _remoteContactsByName.remove(name);
@@ -526,7 +536,10 @@ class _PithShellState extends State<PithShell>
     }
 
     await PendingContactSyncQueueService.instance.enqueue(
-      PendingContactSyncItem.delete(fullName: name),
+      PendingContactSyncItem.delete(
+        fullName: name,
+        contactId: contactId,
+      ),
     );
     await _refreshPendingContactSyncCount();
     _setSparkFeedback(
@@ -1414,7 +1427,12 @@ class _PithShellState extends State<PithShell>
     }
 
     if (updated == null) {
-      await _saveContactOffline(input: input, oldName: oldName);
+      await _saveContactOffline(
+        input: input,
+        oldName: oldName,
+        oldContactId: existingRemote?.id,
+        contactId: existingRemote?.id,
+      );
       unawaited(HapticsService.warning());
       return;
     }
@@ -1483,7 +1501,7 @@ class _PithShellState extends State<PithShell>
         return SupabaseSyncService.instance.deleteContactByName(name);
       });
     } catch (_) {
-      await _deleteContactOffline(name);
+      await _deleteContactOffline(name, contactId: existingRemote?.id);
       unawaited(HapticsService.warning());
       return;
     }
@@ -1503,6 +1521,12 @@ class _PithShellState extends State<PithShell>
     });
 
     _setSparkFeedback('Contacto eliminado: $name');
+
+    await PendingContactSyncQueueService.instance.removeForContact(
+      fullName: name,
+      contactId: existingRemote?.id,
+    );
+    await _refreshPendingContactSyncCount();
 
     unawaited(_syncBirthdayNotifications());
     unawaited(_flushPendingContacts());
