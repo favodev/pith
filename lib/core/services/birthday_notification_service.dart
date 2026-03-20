@@ -111,6 +111,20 @@ class BirthdayNotificationService {
 
   tz.TZDateTime _nextBirthdayAtNine(DateTime birthday) {
     final now = tz.TZDateTime.now(tz.local);
+    final isToday = now.month == birthday.month && now.day == birthday.day;
+
+    if (isToday) {
+      final todayAtNine = _birthdayAtHour(
+        year: now.year,
+        month: birthday.month,
+        day: birthday.day,
+        hour: 9,
+      );
+      if (todayAtNine.isBefore(now)) {
+        return now.add(const Duration(minutes: 1));
+      }
+      return todayAtNine;
+    }
 
     var candidate = _birthdayAtHour(year: now.year, month: birthday.month, day: birthday.day, hour: 9);
     if (candidate.isBefore(now)) {

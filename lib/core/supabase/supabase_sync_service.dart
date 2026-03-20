@@ -434,6 +434,33 @@ class SupabaseSyncService {
     userCache?.remove(fullName.trim().toLowerCase());
   }
 
+  Future<void> deleteContactById(String contactId) async {
+    if (!isEnabled) {
+      throw StateError('Supabase no esta configurado.');
+    }
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw StateError('Se requiere una sesion de usuario para eliminar contactos.');
+    }
+
+    await _withRetry<void>(
+      () async {
+        await _client
+            .from('contacts')
+            .delete()
+            .eq('user_id', userId)
+            .eq('id', contactId);
+      },
+      errorContext: 'eliminar contacto por id',
+    );
+
+    final userCache = _contactIdsByUserAndName[userId];
+    if (userCache != null) {
+      userCache.removeWhere((_, cachedId) => cachedId == contactId);
+    }
+  }
+
   Future<void> saveContactInterests({
     required String contactId,
     required List<String> interestLabels,

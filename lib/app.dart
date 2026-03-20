@@ -84,6 +84,7 @@ class _PithShellState extends State<PithShell>
   bool _isSyncingPendingSparks = false;
   bool _isSyncingPendingContacts = false;
   Timer? _pendingSparkSyncTimer;
+  bool _isInitialHydrationPending = true;
   late Map<String, ContactProfile> _profiles;
   late Map<String, SupabaseContactRecord> _remoteContactsByName;
   late List<BirthdayContact> _birthdayContacts;
@@ -104,6 +105,7 @@ class _PithShellState extends State<PithShell>
     _remoteContactsByName = {};
     _birthdayContacts = [];
     _activeProfileName = '';
+    _isInitialHydrationPending = SupabaseSyncService.instance.isEnabled;
     _fanOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 820),
@@ -131,6 +133,11 @@ class _PithShellState extends State<PithShell>
 
   Future<void> _hydrateFromSupabase() async {
     if (!SupabaseSyncService.instance.isEnabled) {
+      if (mounted && _isInitialHydrationPending) {
+        setState(() => _isInitialHydrationPending = false);
+      } else {
+        _isInitialHydrationPending = false;
+      }
       return;
     }
 
@@ -166,6 +173,14 @@ class _PithShellState extends State<PithShell>
       unawaited(_flushPendingSparks());
     } catch (_) {
       // Keep local fallback if sync fails.
+    } finally {
+      if (_isInitialHydrationPending) {
+        if (mounted) {
+          setState(() => _isInitialHydrationPending = false);
+        } else {
+          _isInitialHydrationPending = false;
+        }
+      }
     }
   }
 
@@ -1031,22 +1046,6 @@ class _PithShellState extends State<PithShell>
     );
   }
 
-  List<PulseItem> get _pulseItems {
-    final items = <PulseItem>[];
-    for (final contact in _upcomingBirthdayContacts.take(3)) {
-      items.add(
-        PulseItem(
-          name: contact.name,
-          meta: contact.relation,
-          detail: contact.subtitle,
-          initials: contact.initials,
-          tint: contact.accent,
-        ),
-      );
-    }
-    return items;
-  }
-
   ContactProfile _resolveProfileForSpark(String value) {
     if (_profiles.isEmpty) {
       return _emptyProfile;
@@ -1475,8 +1474,14 @@ class _PithShellState extends State<PithShell>
   }
 
   Future<void> _deleteContact(String name) async {
+    final existingRemote = _remoteContactsByName[name];
     try {
-      await _runBusy(() => SupabaseSyncService.instance.deleteContactByName(name));
+      await _runBusy(() {
+        if (existingRemote != null) {
+          return SupabaseSyncService.instance.deleteContactById(existingRemote.id);
+        }
+        return SupabaseSyncService.instance.deleteContactByName(name);
+      });
     } catch (_) {
       await _deleteContactOffline(name);
       unawaited(HapticsService.warning());
@@ -1682,10 +1687,10 @@ class _PithShellState extends State<PithShell>
     final screens = [
       HomeDashboardScreen(
         deck: _deckSummary,
-        pulses: _pulseItems,
         onOpenBirthdays: _openBirthdayStack,
         onOpenSearch: _openSearch,
         hasContacts: _profiles.isNotEmpty,
+        isLoadingContacts: _isInitialHydrationPending,
         onAddFirstContact: _onAddContact,
         onOpenAccount: _openAccountSheet,
         onSubmitSpark: (value) {

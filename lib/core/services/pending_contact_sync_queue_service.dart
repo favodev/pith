@@ -135,8 +135,15 @@ class PendingContactSyncQueueService {
 
   Future<void> enqueue(PendingContactSyncItem item) async {
     final items = await readAll();
-    items.add(item);
-    await _writeAll(items);
+    final target = _normalizedName(item.fullName);
+    final compacted = <PendingContactSyncItem>[];
+    for (final existing in items) {
+      if (_normalizedName(existing.fullName) != target) {
+        compacted.add(existing);
+      }
+    }
+    compacted.add(item);
+    await _writeAll(compacted);
   }
 
   Future<void> replaceAll(List<PendingContactSyncItem> items) async {
@@ -149,5 +156,9 @@ class PendingContactSyncQueueService {
       for (final item in items) item.toJson(),
     ]);
     await prefs.setString(_storageKey, encoded);
+  }
+
+  String _normalizedName(String value) {
+    return value.trim().toLowerCase();
   }
 }

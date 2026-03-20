@@ -7,22 +7,22 @@ class HomeDashboardScreen extends StatelessWidget {
   const HomeDashboardScreen({
     super.key,
     required this.deck,
-    required this.pulses,
     required this.onOpenBirthdays,
     required this.onOpenSearch,
     required this.onSubmitSpark,
     required this.hasContacts,
+    required this.isLoadingContacts,
     this.onAddFirstContact,
     this.onOpenAccount,
     this.sparkFeedback,
   });
 
   final DeckSummary deck;
-  final List<PulseItem> pulses;
   final VoidCallback onOpenBirthdays;
   final VoidCallback onOpenSearch;
   final ValueChanged<String> onSubmitSpark;
   final bool hasContacts;
+  final bool isLoadingContacts;
   final VoidCallback? onAddFirstContact;
   final VoidCallback? onOpenAccount;
   final String? sparkFeedback;
@@ -64,13 +64,12 @@ class HomeDashboardScreen extends StatelessWidget {
                     ),
                   ),
                 const SizedBox(height: 16),
-                if (!hasContacts)
+                if (isLoadingContacts)
+                  const _HomeLoadingState()
+                else if (!hasContacts)
                   _EmptyHomeState(onAddFirstContact: onAddFirstContact)
                 else
-                for (final pulse in pulses) ...[
-                  _PulseCard(item: pulse),
-                  const SizedBox(height: 16),
-                ],
+                  const SizedBox.shrink(),
                 const SizedBox(height: 4),
                 _QuickSparkInput(
                   onSubmitted: onSubmitSpark,
@@ -240,62 +239,33 @@ class _DeckAvatar extends StatelessWidget {
   }
 }
 
-class _PulseCard extends StatelessWidget {
-  const _PulseCard({required this.item});
-
-  final PulseItem item;
+class _HomeLoadingState extends StatelessWidget {
+  const _HomeLoadingState();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF131D2B).withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        color: const Color(0xFF131D2B).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: item.tint.withValues(alpha: 0.82),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              item.initials,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            ),
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2.2),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.meta} • ${item.detail}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF91A0BA),
-                    height: 1.35,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Cargando tus contactos...',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: const Color(0xFF9AA8C0),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
