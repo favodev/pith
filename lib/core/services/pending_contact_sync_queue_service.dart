@@ -147,10 +147,14 @@ class PendingContactSyncQueueService {
 
   Future<void> enqueue(PendingContactSyncItem item) async {
     final items = await readAll();
-    final target = _queueKey(fullName: item.fullName, contactId: item.contactId);
     final compacted = <PendingContactSyncItem>[];
     for (final existing in items) {
-      if (_queueKey(fullName: existing.fullName, contactId: existing.contactId) != target) {
+      if (!_isSameContact(
+        existingFullName: existing.fullName,
+        existingContactId: existing.contactId,
+        targetFullName: item.fullName,
+        targetContactId: item.contactId,
+      )) {
         compacted.add(existing);
       }
     }
@@ -163,10 +167,13 @@ class PendingContactSyncQueueService {
     String? contactId,
   }) async {
     final items = await readAll();
-    final target = _queueKey(fullName: fullName, contactId: contactId);
     final filtered = items.where((item) {
-      final itemKey = _queueKey(fullName: item.fullName, contactId: item.contactId);
-      return itemKey != target;
+      return !_isSameContact(
+        existingFullName: item.fullName,
+        existingContactId: item.contactId,
+        targetFullName: fullName,
+        targetContactId: contactId,
+      );
     }).toList();
 
     await _writeAll(filtered);
@@ -188,11 +195,21 @@ class PendingContactSyncQueueService {
     return value.trim().toLowerCase();
   }
 
-  String _queueKey({required String fullName, String? contactId}) {
-    final normalizedId = contactId?.trim();
-    if (normalizedId != null && normalizedId.isNotEmpty) {
-      return 'id:$normalizedId';
+  bool _isSameContact({
+    required String existingFullName,
+    required String? existingContactId,
+    required String targetFullName,
+    required String? targetContactId,
+  }) {
+    final existingId = existingContactId?.trim();
+    final targetId = targetContactId?.trim();
+
+    if (existingId != null && existingId.isNotEmpty && targetId != null && targetId.isNotEmpty) {
+      if (existingId == targetId) {
+        return true;
+      }
     }
-    return 'name:${_normalizedName(fullName)}';
+
+    return _normalizedName(existingFullName) == _normalizedName(targetFullName);
   }
 }
