@@ -23,6 +23,7 @@ class BirthdayNotificationService {
   static final BirthdayNotificationService instance = BirthdayNotificationService._();
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final Set<String> _sessionLateReminderKeys = <String>{};
   bool _initialized = false;
 
   static const _androidChannelId = 'pith_birthdays';
@@ -53,6 +54,7 @@ class BirthdayNotificationService {
 
   Future<void> syncBirthdays(List<BirthdayReminderTarget> reminders) async {
     await initialize();
+    final now = tz.TZDateTime.now(tz.local);
 
     final pending = await _plugin.pendingNotificationRequests();
     for (final item in pending) {
@@ -65,6 +67,61 @@ class BirthdayNotificationService {
     for (final reminder in reminders) {
       final id = _notificationIdForContact(reminder.contactId);
       final scheduledAt = _nextBirthdayAtNine(reminder.birthday);
+      final isBirthdayToday =
+          now.month == reminder.birthday.month && now.day == reminder.birthday.day;
+
+      if (isBirthdayToday && scheduledAt.isBefore(now.add(const Duration(minutes: 2)))) {
+        final dateKey =
+            '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        final lateKey = '${reminder.contactId}:$dateKey';
+        if (_sessionLateReminderKeys.add(lateKey)) {
+          await _plugin.show(
+            id,
+            'Cumpleaños hoy',
+            'Hoy esta de cumple ${reminder.name}.',
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                _androidChannelId,
+                _androidChannelName,
+                channelDescription: _androidChannelDescription,
+                importance: Importance.max,
+                priority: Priority.high,
+              ),
+              iOS: DarwinNotificationDetails(),
+            ),
+            payload: 'birthday:${reminder.contactId}',
+          );
+        }
+
+        final nextYear = _birthdayAtHour(
+          year: now.year + 1,
+          month: reminder.birthday.month,
+          day: reminder.birthday.day,
+          hour: 9,
+        );
+
+        await _plugin.zonedSchedule(
+          id,
+          'Cumpleaños hoy',
+          'Hoy esta de cumple ${reminder.name}.',
+          nextYear,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _androidChannelId,
+              _androidChannelName,
+              channelDescription: _androidChannelDescription,
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
+          ),
+          payload: 'birthday:${reminder.contactId}',
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        );
+        continue;
+      }
 
       await _plugin.zonedSchedule(
         id,

@@ -111,6 +111,7 @@ class _PithShellState extends State<PithShell>
       duration: const Duration(milliseconds: 820),
     );
 
+    unawaited(BirthdayNotificationService.instance.initialize());
     _hydrateFromSupabase();
     unawaited(_refreshPendingSparkSyncCount());
     unawaited(_refreshPendingContactSyncCount());
